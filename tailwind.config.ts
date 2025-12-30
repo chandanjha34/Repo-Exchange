@@ -16,6 +16,7 @@ export default {
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
         mono: ['JetBrains Mono', 'monospace'],
+        heading: ['Rubik', 'system-ui', 'sans-serif'],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -60,6 +61,15 @@ export default {
           "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
+        },
+        homepage: {
+          bg: "hsl(var(--homepage-bg))",
+          "bg-alt": "hsl(var(--homepage-bg-alt))",
+          card: "hsl(var(--homepage-card))",
+          border: "hsl(var(--homepage-border))",
+          text: "hsl(var(--homepage-text))",
+          "text-muted": "hsl(var(--homepage-text-muted))",
+          "text-subtle": "hsl(var(--homepage-text-subtle))",
         },
       },
       borderRadius: {
