@@ -1,12 +1,28 @@
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Menu, Plus, User, LayoutDashboard } from "lucide-react";
+import { Search, Menu, Plus, User, LayoutDashboard, LogOut, Wallet } from "lucide-react";
 import { useState } from "react";
+import { useAuth } from "@/hooks/useAuth";
+
+/**
+ * Truncates a wallet address for display
+ * Shows first 6 and last 4 characters
+ */
+function truncateAddress(address: string): string {
+  return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
 
 export function Header() {
   const location = useLocation();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const { isAuthenticated, walletAddress, logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
 
   const navLinks = [
     { href: "/repositories", label: "Explore" },
@@ -54,25 +70,47 @@ export function Header() {
 
           {/* Actions */}
           <div className="flex items-center gap-2">
-            <Link to="/repositories/new" className="hidden sm:block">
-              <Button variant="hero" size="sm">
-                <Plus className="w-4 h-4" />
-                Add Repo
-              </Button>
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link to="/repositories/new" className="hidden sm:block">
+                  <Button variant="hero" size="sm">
+                    <Plus className="w-4 h-4" />
+                    Add Repo
+                  </Button>
+                </Link>
 
-            <Link to="/dashboard">
-              <Button variant="ghost" size="icon-sm" className="hidden sm:flex">
-                <LayoutDashboard className="w-4 h-4" />
-              </Button>
-            </Link>
+                <Link to="/dashboard">
+                  <Button variant="ghost" size="icon-sm" className="hidden sm:flex">
+                    <LayoutDashboard className="w-4 h-4" />
+                  </Button>
+                </Link>
 
-            <Link to="/login">
-              <Button variant="outline" size="sm">
-                <User className="w-4 h-4" />
-                <span className="hidden sm:inline">Sign In</span>
-              </Button>
-            </Link>
+                {/* Wallet Address Display */}
+                {walletAddress && (
+                  <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-secondary/50 border border-border/50">
+                    <Wallet className="w-3.5 h-3.5 text-muted-foreground" />
+                    <span className="text-sm font-mono text-muted-foreground">
+                      {truncateAddress(walletAddress)}
+                    </span>
+                  </div>
+                )}
+
+                {/* Logout Button */}
+                <Button variant="outline" size="sm" onClick={handleLogout}>
+                  <LogOut className="w-4 h-4" />
+                  <span className="hidden sm:inline">Logout</span>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link to="/login">
+                  <Button variant="outline" size="sm">
+                    <User className="w-4 h-4" />
+                    <span className="hidden sm:inline">Sign In</span>
+                  </Button>
+                </Link>
+              </>
+            )}
 
             {/* Mobile Menu Toggle */}
             <Button
@@ -108,12 +146,43 @@ export function Header() {
                   </Button>
                 </Link>
               ))}
-              <Link to="/repositories/new">
-                <Button variant="hero" className="w-full">
-                  <Plus className="w-4 h-4" />
-                  Add Repository
-                </Button>
-              </Link>
+              {isAuthenticated ? (
+                <>
+                  <Link to="/repositories/new">
+                    <Button variant="hero" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Plus className="w-4 h-4" />
+                      Add Repository
+                    </Button>
+                  </Link>
+                  {/* Mobile Wallet Address Display */}
+                  {walletAddress && (
+                    <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-md bg-secondary/50 border border-border/50">
+                      <Wallet className="w-3.5 h-3.5 text-muted-foreground" />
+                      <span className="text-sm font-mono text-muted-foreground">
+                        {truncateAddress(walletAddress)}
+                      </span>
+                    </div>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      handleLogout();
+                    }}
+                  >
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <Link to="/login">
+                  <Button variant="outline" className="w-full" onClick={() => setIsMobileMenuOpen(false)}>
+                    <User className="w-4 h-4" />
+                    Sign In
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         )}

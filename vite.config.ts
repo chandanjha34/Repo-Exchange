@@ -13,6 +13,14 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Handle Privy's optional Solana peer dependencies
+      "@solana-program/system": path.resolve(__dirname, "./src/lib/solana-stub.ts"),
+    },
+  },
+  build: {
+    rollupOptions: {
+      // Externalize optional Solana dependencies that Privy doesn't need for Ethereum-only usage
+      external: [],
     },
   },
 }));
