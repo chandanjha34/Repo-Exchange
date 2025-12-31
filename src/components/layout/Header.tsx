@@ -1,21 +1,14 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Search, Menu, X, Plus, LayoutDashboard, LogOut, Wallet } from "lucide-react";
+import { Search, Menu, X, Plus, LayoutDashboard, LogOut, User } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-
-/**
- * Truncates a wallet address for display
- * Shows first 6 and last 4 characters
- */
-function truncateAddress(address: string): string {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
-}
+import { WalletButton } from "../wallet";
 
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const { isAuthenticated, walletAddress, logout } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
 
   const handleLogout = async () => {
     await logout();
@@ -86,15 +79,14 @@ export function Header() {
                   </button>
                 </Link>
 
-                {/* Wallet Address Display */}
-                {walletAddress && (
-                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-neutral-900 border border-neutral-800">
-                    <Wallet className="w-3.5 h-3.5 text-neutral-500" />
-                    <span className="text-sm font-mono text-neutral-400">
-                      {truncateAddress(walletAddress)}
-                    </span>
-                  </div>
-                )}
+                <Link to="/profile/me">
+                  <button className="p-2 text-neutral-300 hover:text-white transition-colors">
+                    <User className="w-5 h-5" />
+                  </button>
+                </Link>
+
+                {/* Wallet Button with Popup */}
+                <WalletButton />
 
                 {/* Logout Button */}
                 <button 
@@ -177,15 +169,16 @@ export function Header() {
                   </button>
                 </Link>
 
-                {/* Mobile Wallet Address Display */}
-                {walletAddress && (
-                  <div className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-sm bg-neutral-900 border border-neutral-800">
-                    <Wallet className="w-3.5 h-3.5 text-neutral-500" />
-                    <span className="text-sm font-mono text-neutral-400">
-                      {truncateAddress(walletAddress)}
-                    </span>
-                  </div>
-                )}
+                {/* Mobile Wallet Link */}
+                <Link to="/profile/me">
+                  <button 
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="w-full px-4 py-2.5 border border-neutral-800 text-neutral-300 hover:text-white hover:border-neutral-600 transition-colors rounded-sm text-sm flex items-center justify-center gap-2"
+                  >
+                    <User className="w-4 h-4" />
+                    Profile & Wallet
+                  </button>
+                </Link>
 
                 <button 
                   onClick={() => {
