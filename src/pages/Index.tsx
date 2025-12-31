@@ -6,63 +6,14 @@ import {
   MinimalFooter 
 } from "@/components/homepage";
 import { useAuth } from "@/hooks/useAuth";
-
-// Featured repository data for the homepage
-interface FeaturedRepo {
-  id: string;
-  slug: string;
-  name: string;
-  description: string;
-  author: string;
-}
-
-const featuredRepos: FeaturedRepo[] = [
-  {
-    id: "1",
-    slug: "nextjs-saas-starter",
-    name: "Next.js SaaS Starter",
-    description: "Production-ready SaaS template with authentication, billing, and dashboard.",
-    author: "Sarah Chen"
-  },
-  {
-    id: "2",
-    slug: "react-dashboard-kit",
-    name: "React Dashboard Kit",
-    description: "Modern admin dashboard with charts, tables, and dark mode support.",
-    author: "Alex Rivera"
-  },
-  {
-    id: "3",
-    slug: "tailwind-ui-components",
-    name: "Tailwind UI Components",
-    description: "50+ accessible components built with Tailwind CSS and React.",
-    author: "Jordan Lee"
-  },
-  {
-    id: "4",
-    slug: "node-api-boilerplate",
-    name: "Node API Boilerplate",
-    description: "Express.js REST API with TypeScript, authentication, and testing setup.",
-    author: "Morgan Smith"
-  },
-  {
-    id: "5",
-    slug: "vue-ecommerce-template",
-    name: "Vue E-commerce Template",
-    description: "Full-featured e-commerce frontend with cart, checkout, and payments.",
-    author: "Casey Kim"
-  },
-  {
-    id: "6",
-    slug: "python-ml-starter",
-    name: "Python ML Starter",
-    description: "Machine learning project template with data pipelines and model serving.",
-    author: "Taylor Wong"
-  }
-];
+import { useProjects } from "@/hooks/useProjects";
 
 const Index = () => {
   const { isAuthenticated, ready } = useAuth();
+  const { projects: featuredProjects, isLoading } = useProjects({ 
+    featured: true, 
+    limit: 6 
+  });
 
   // Wait for auth to be ready before redirecting
   if (!ready) {
@@ -135,18 +86,30 @@ const Index = () => {
             Featured Repositories
           </h2>
 
-          {/* Repository Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {featuredRepos.map((repo) => (
-              <RepositoryCardMinimal
-                key={repo.id}
-                name={repo.name}
-                description={repo.description}
-                author={repo.author}
-                slug={repo.slug}
-              />
-            ))}
-          </div>
+          {/* Loading State */}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : featuredProjects.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {featuredProjects.map((project) => (
+                <RepositoryCardMinimal
+                  key={project._id}
+                  name={project.title}
+                  description={project.shortDescription}
+                  author={project.ownerName}
+                  slug={project.slug}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-neutral-400">
+                No featured projects yet. Check back soon!
+              </p>
+            </div>
+          )}
         </div>
       </section>
 

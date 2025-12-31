@@ -12,34 +12,62 @@ router.post('/', async (req: Request, res: Response) => {
   try {
     const {
       title,
+      slug,
+      shortDescription,
       description,
       ownerWalletAddress,
+      ownerName,
+      ownerAvatar,
       priceView,
       priceDownload,
       technologies,
+      category,
       images,
+      previewImage,
       zipFileUrl,
+      demoUrl,
       isPublished,
+      isFeatured,
     } = req.body;
 
     // Validate required fields
-    if (!title || !description || !ownerWalletAddress) {
+    if (!title || !slug || !shortDescription || !description || !ownerWalletAddress || !ownerName) {
       return res.status(400).json({
         success: false,
-        error: 'title, description, and ownerWalletAddress are required',
+        error: 'title, slug, shortDescription, description, ownerWalletAddress, and ownerName are required',
+      });
+    }
+
+    // Check if slug already exists
+    const existingProject = await Project.findOne({ slug: slug.toLowerCase() });
+    if (existingProject) {
+      return res.status(400).json({
+        success: false,
+        error: 'A project with this slug already exists',
       });
     }
 
     const project = await Project.create({
       title,
+      slug: slug.toLowerCase(),
+      shortDescription,
       description,
       ownerWalletAddress: ownerWalletAddress.toLowerCase(),
+      ownerName,
+      ownerAvatar,
       priceView: priceView || 0,
       priceDownload: priceDownload || 0,
       technologies: technologies || [],
+      category: category || 'Other',
       images: images || [],
+      previewImage,
       zipFileUrl,
+      demoUrl,
       isPublished: isPublished || false,
+      isFeatured: isFeatured || false,
+      stars: 0,
+      forks: 0,
+      downloads: 0,
     });
 
     return res.status(201).json({
@@ -66,6 +94,8 @@ router.get('/', async (req: Request, res: Response) => {
     const skip = (page - 1) * limit;
     const ownerWallet = req.query.owner as string;
     const search = req.query.search as string;
+    const category = req.query.category as string;
+    const featured = req.query.featured as string;
 
     // Build query
     const query: Record<string, unknown> = { isPublished: true };
@@ -78,6 +108,14 @@ router.get('/', async (req: Request, res: Response) => {
 
     if (search) {
       query.$text = { $search: search };
+    }
+
+    if (category && category !== 'All') {
+      query.category = category;
+    }
+
+    if (featured === 'true') {
+      query.isFeatured = true;
     }
 
     const [projects, total] = await Promise.all([
@@ -104,6 +142,36 @@ router.get('/', async (req: Request, res: Response) => {
     return res.status(500).json({
       success: false,
       error: 'Failed to list projects',
+    });
+  }
+});
+
+/**
+ * GET /api/projects/slug/:slug
+ * Get project by slug
+ */
+router.get('/slug/:slug', async (req: Request, res: Response) => {
+  try {
+    const { slug } = req.params;
+
+    const project = await Project.findOne({ slug: slug.toLowerCase() }).lean();
+
+    if (!project) {
+      return res.status(404).json({
+        success: false,
+        error: 'Project not found',
+      });
+    }
+
+    return res.json({
+      success: true,
+      data: project,
+    });
+  } catch (error) {
+    console.error('[Projects] Get by slug error:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Failed to get project',
     });
   }
 });

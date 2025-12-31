@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { HomepageNavbar } from "@/components/homepage";
 import { Layout } from "@/components/layout";
-import { RepositoryCard, mockRepositories, categories, techStackFilters } from "@/components/repository";
+import { RepositoryCard, categories, techStackFilters } from "@/components/repository";
 import { Search, Filter, Grid, List, SlidersHorizontal } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useProjects } from "@/hooks/useProjects";
 
 const Repositories = () => {
   const { isAuthenticated } = useAuth();
@@ -11,20 +12,25 @@ const Repositories = () => {
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedTech, setSelectedTech] = useState<string[]>([]);
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
 
-  const filteredRepos = mockRepositories.filter((repo) => {
-    const matchesSearch = 
-      repo.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      repo.shortDescription.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = 
-      selectedCategory === "All" || repo.category === selectedCategory;
-    
-    const matchesTech = 
-      selectedTech.length === 0 || 
-      selectedTech.some((tech) => repo.techStack.includes(tech));
-    
-    return matchesSearch && matchesCategory && matchesTech;
+  // Debounce search query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const { projects, isLoading, pagination } = useProjects({
+    search: debouncedSearch || undefined,
+    category: selectedCategory !== "All" ? selectedCategory : undefined,
+  });
+
+  // Filter by tech stack on client side (since it's an array field)
+  const filteredProjects = projects.filter((project) => {
+    if (selectedTech.length === 0) return true;
+    return selectedTech.some((tech) => project.technologies.includes(tech));
   });
 
   const toggleTech = (tech: string) => {
@@ -43,7 +49,7 @@ const Repositories = () => {
           Explore Projects
         </h1>
         <p className="text-neutral-400 text-base sm:text-lg">
-          Discover {mockRepositories.length}+ curated projects from top developers
+          Discover {pagination?.total || 0} curated projects from top developers
         </p>
       </div>
 
@@ -130,7 +136,7 @@ const Repositories = () => {
       {/* Results Count and Sort */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <p className="text-sm text-neutral-400">
-          Showing {filteredRepos.length} projects
+          Showing {filteredProjects.length} projects
         </p>
         <select className="bg-neutral-900 border border-neutral-800 rounded-sm px-4 py-2 text-sm text-white focus:outline-none focus:border-neutral-600">
           <option>Most Popular</option>
@@ -140,15 +146,19 @@ const Repositories = () => {
         </select>
       </div>
 
-      {/* Project Grid */}
-      {filteredRepos.length > 0 ? (
+      {/* Loading State */}
+      {isLoading ? (
+        <div className="flex items-center justify-center py-20">
+          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+        </div>
+      ) : filteredProjects.length > 0 ? (
         <div className={`grid gap-6 ${
           viewMode === "grid" 
             ? "grid-cols-1 md:grid-cols-2 lg:grid-cols-3" 
             : "grid-cols-1"
         }`}>
-          {filteredRepos.map((repo) => (
-            <RepositoryCard key={repo.id} repository={repo} />
+          {filteredProjects.map((project) => (
+            <RepositoryCard key={project._id} project={project} />
           ))}
         </div>
       ) : (
@@ -160,7 +170,9 @@ const Repositories = () => {
             No projects found
           </h3>
           <p className="text-neutral-400 mb-6">
-            Try adjusting your search or filter criteria
+            {projects.length === 0 
+              ? "No projects have been added yet. Be the first to add one!"
+              : "Try adjusting your search or filter criteria"}
           </p>
           <button
             onClick={() => {

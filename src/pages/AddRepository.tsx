@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Layout } from "@/components/layout";
+import { projectApi } from "@/lib/api";
+import { useWallet } from "@/hooks/useWallet";
 import {
   X,
   Plus,
@@ -24,7 +26,9 @@ const licenses = ["MIT", "Apache 2.0", "GPL 3.0", "BSD 3-Clause", "Proprietary"]
 
 const AddRepository = () => {
   const navigate = useNavigate();
+  const { address } = useWallet();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     shortDescription: "",
@@ -99,9 +103,46 @@ const AddRepository = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
-    setIsSubmitting(false);
-    navigate("/profile/me");
+    setError(null);
+
+    if (!address) {
+      setError("Please connect your wallet first");
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Generate slug from name
+    const slug = formData.name
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+    try {
+      const response = await projectApi.create({
+        title: formData.name,
+        slug,
+        shortDescription: formData.shortDescription,
+        description: formData.longDescription || formData.shortDescription,
+        ownerWalletAddress: address,
+        ownerName: `${address.slice(0, 6)}...${address.slice(-4)}`,
+        technologies: techStack,
+        category: formData.category || 'Other',
+        demoUrl: formData.demoUrl || undefined,
+        priceView: parseFloat(pricing.viewPrice) || 0,
+        priceDownload: parseFloat(pricing.forkPrice) || 0,
+        isPublished: true,
+      });
+
+      if (response.success) {
+        navigate("/profile/me");
+      } else {
+        setError(response.error || "Failed to create project");
+      }
+    } catch (err) {
+      setError("Network error. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -118,6 +159,20 @@ const AddRepository = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
+            {/* Error Message */}
+            {error && (
+              <div className="bg-red-500/10 border border-red-500/20 rounded-sm p-4">
+                <p className="text-red-400 text-sm">{error}</p>
+              </div>
+            )}
+
+            {/* Wallet Warning */}
+            {!address && (
+              <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-sm p-4">
+                <p className="text-yellow-400 text-sm">Please connect your wallet to add a project.</p>
+              </div>
+            )}
+
             {/* Basic Info */}
             <div className="relative bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-sm p-6">
               {/* Glass effect overlay */}

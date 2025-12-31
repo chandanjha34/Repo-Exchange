@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Layout } from "@/components/layout";
-import { RepositoryCard, mockRepositories } from "@/components/repository";
+import { RepositoryCard } from "@/components/repository";
 import { WalletProfileSection } from "@/components/wallet/WalletProfileSection";
 import {
   MapPin,
@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { useWallet } from "@/hooks/useWallet";
+import { useProjects } from "@/hooks/useProjects";
 
 const Profile = () => {
   const { username } = useParams();
@@ -27,47 +28,43 @@ const Profile = () => {
   const { address, balance, isLoadingBalance } = useWallet();
   const [showWallet, setShowWallet] = useState(false);
 
-  // Mock user data
+  // Fetch user's projects (using wallet address as owner filter when available)
+  const { projects: userProjects, isLoading: isLoadingProjects } = useProjects({
+    owner: address || undefined,
+    autoFetch: !!address,
+  });
+
+  // User data from wallet/auth
   const user = {
-    name: "Alex Chen",
-    username: username || "alexchen",
-    avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=200&h=200&fit=crop&crop=face",
-    bio: "Full-stack developer passionate about building beautiful, functional web applications. Creator of Next.js SaaS Starter Kit and other open-source projects.",
-    location: "San Francisco, CA",
-    website: "https://alexchen.dev",
-    email: "alex@example.com",
-    joinedDate: "January 2023",
+    name: address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "User",
+    username: username || "me",
+    avatar: address 
+      ? `https://api.dicebear.com/7.x/identicon/svg?seed=${address}` 
+      : "https://api.dicebear.com/7.x/initials/svg?seed=User",
+    bio: "Developer on layR marketplace",
+    location: "",
+    website: "",
+    email: "",
+    joinedDate: "2024",
     stats: {
-      projects: 12,
-      stars: 4500,
-      forks: 890,
-      followers: 1200,
+      projects: userProjects.length,
+      stars: userProjects.reduce((acc, p) => acc + p.stars, 0),
+      forks: userProjects.reduce((acc, p) => acc + p.forks, 0),
+      followers: 0,
     },
   };
-
-  const userRepos = mockRepositories.filter(
-    (r) => r.author.username === username || r.author.username === "alexchen"
-  );
 
   const truncateAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
 
   // Check if viewing own profile
-  const isOwnProfile = isAuthenticated && (!username || username === "me" || username === "alexchen");
+  const isOwnProfile = isAuthenticated && (!username || username === "me");
 
   // Stats for dashboard-style cards (only shown on own profile)
   const dashboardStats = [
-    { label: "Total Views", value: "12,432", change: "+12%", icon: Eye },
-    { label: "Total Stars", value: "847", change: "+8%", icon: Star },
-    { label: "Fork Requests", value: "23", change: "+5%", icon: GitFork },
-    { label: "Messages", value: "12", change: "+3", icon: MessageSquare },
-  ];
-
-  // Recent activity (only shown on own profile)
-  const recentActivity = [
-    { type: "star", user: "johndoe", repo: "Next.js SaaS Starter Kit", time: "2 hours ago" },
-    { type: "fork", user: "sarahm", repo: "React Dashboard Pro", time: "5 hours ago" },
-    { type: "message", user: "mikeb", repo: "E-Commerce Platform", time: "1 day ago" },
-    { type: "star", user: "lisaa", repo: "AI Chatbot Template", time: "2 days ago" },
+    { label: "Total Views", value: userProjects.reduce((acc, p) => acc + p.downloads, 0).toLocaleString(), change: "+12%", icon: Eye },
+    { label: "Total Stars", value: user.stats.stars.toLocaleString(), change: "+8%", icon: Star },
+    { label: "Fork Requests", value: user.stats.forks.toLocaleString(), change: "+5%", icon: GitFork },
+    { label: "Projects", value: user.stats.projects.toString(), change: "+1", icon: MessageSquare },
   ];
 
   return (
@@ -87,13 +84,15 @@ const Profile = () => {
                     <img
                       src={user.avatar}
                       alt={user.name}
-                      className="w-32 h-32 rounded-sm border-2 border-neutral-700 mx-auto object-cover"
+                      className="w-32 h-32 rounded-sm border-2 border-neutral-700 mx-auto object-cover bg-neutral-800"
                     />
-                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
-                      <span className="px-3 py-1 bg-white text-black text-xs font-medium rounded-sm">
-                        Pro
-                      </span>
-                    </div>
+                    {isOwnProfile && (
+                      <div className="absolute -bottom-2 left-1/2 -translate-x-1/2">
+                        <span className="px-3 py-1 bg-white text-black text-xs font-medium rounded-sm">
+                          Pro
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Name */}
@@ -106,14 +105,16 @@ const Profile = () => {
                   <p className="text-sm text-neutral-400 mb-6">{user.bio}</p>
 
                   {/* Actions */}
-                  <div className="flex gap-2 mb-6">
-                    <button className="flex-1 px-4 py-2 bg-white text-black font-medium hover:bg-neutral-200 transition-colors rounded-sm text-sm">
-                      Follow
-                    </button>
-                    <button className="px-4 py-2 border border-neutral-800 text-neutral-300 hover:text-white hover:border-neutral-600 transition-colors rounded-sm">
-                      <Mail className="w-4 h-4" />
-                    </button>
-                  </div>
+                  {!isOwnProfile && (
+                    <div className="flex gap-2 mb-6">
+                      <button className="flex-1 px-4 py-2 bg-white text-black font-medium hover:bg-neutral-200 transition-colors rounded-sm text-sm">
+                        Follow
+                      </button>
+                      <button className="px-4 py-2 border border-neutral-800 text-neutral-300 hover:text-white hover:border-neutral-600 transition-colors rounded-sm">
+                        <Mail className="w-4 h-4" />
+                      </button>
+                    </div>
+                  )}
 
                   {/* Wallet Button - Only for authenticated user */}
                   {isOwnProfile && address && (
@@ -228,48 +229,12 @@ const Profile = () => {
                 </div>
               )}
 
-              {/* Recent Activity - Only for own profile */}
-              {isOwnProfile && (
-                <div className="relative bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-sm p-4">
-                  {/* Glass effect overlay */}
-                  <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent rounded-sm pointer-events-none" />
-                  
-                  <div className="relative">
-                    <h3 className="font-heading text-lg font-semibold text-white mb-4">Recent Activity</h3>
-                    <div className="space-y-4">
-                      {recentActivity.map((activity, index) => (
-                        <div
-                          key={index}
-                          className="flex items-start gap-3 pb-4 border-b border-neutral-800 last:border-0 last:pb-0"
-                        >
-                          <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                            {activity.type === "star" && <Star className="w-4 h-4 text-white" />}
-                            {activity.type === "fork" && <GitFork className="w-4 h-4 text-white" />}
-                            {activity.type === "message" && <MessageSquare className="w-4 h-4 text-white" />}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm text-neutral-300">
-                              <span className="font-medium text-white">{activity.user}</span>
-                              {activity.type === "star" && " starred "}
-                              {activity.type === "fork" && " requested fork for "}
-                              {activity.type === "message" && " sent a message about "}
-                              <span className="text-white">{activity.repo}</span>
-                            </p>
-                            <p className="text-xs text-neutral-500 mt-1">{activity.time}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              )}
-
               {/* Tabs */}
               <div className="flex items-center gap-4 mb-6 border-b border-neutral-800 pb-4">
                 <button className="px-4 py-2 text-white font-medium border-b-2 border-white -mb-[17px] transition-colors">
                   Projects
                   <span className="ml-2 px-2 py-0.5 bg-neutral-800 text-white text-xs rounded-sm">
-                    {userRepos.length}
+                    {userProjects.length}
                   </span>
                 </button>
                 <button className="px-4 py-2 text-neutral-400 hover:text-white transition-colors">
@@ -287,10 +252,14 @@ const Profile = () => {
               </div>
 
               {/* Projects Grid */}
-              {userRepos.length > 0 ? (
+              {isLoadingProjects ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : userProjects.length > 0 ? (
                 <div className="grid md:grid-cols-2 gap-6">
-                  {userRepos.map((repo) => (
-                    <RepositoryCard key={repo.id} repository={repo} />
+                  {userProjects.map((project) => (
+                    <RepositoryCard key={project._id} project={project} />
                   ))}
                 </div>
               ) : (
@@ -306,7 +275,9 @@ const Profile = () => {
                       No projects yet
                     </h3>
                     <p className="text-neutral-400">
-                      This user hasn't uploaded any projects yet.
+                      {isOwnProfile 
+                        ? "You haven't uploaded any projects yet. Add your first project!"
+                        : "This user hasn't uploaded any projects yet."}
                     </p>
                   </div>
                 </div>

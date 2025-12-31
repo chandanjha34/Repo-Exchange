@@ -59,28 +59,47 @@ export const userApi = {
 export interface Project {
   _id: string;
   title: string;
+  slug: string;
+  shortDescription: string;
   description: string;
   ownerWalletAddress: string;
+  ownerName: string;
+  ownerAvatar?: string;
   priceView: number;
   priceDownload: number;
   isPublished: boolean;
+  isFeatured: boolean;
   technologies: string[];
+  category: string;
   images: string[];
+  previewImage?: string;
   zipFileUrl?: string;
+  demoUrl?: string;
+  stars: number;
+  forks: number;
+  downloads: number;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface CreateProjectInput {
   title: string;
+  slug: string;
+  shortDescription: string;
   description: string;
   ownerWalletAddress: string;
+  ownerName: string;
+  ownerAvatar?: string;
   priceView?: number;
   priceDownload?: number;
   technologies?: string[];
+  category?: string;
   images?: string[];
+  previewImage?: string;
   zipFileUrl?: string;
+  demoUrl?: string;
   isPublished?: boolean;
+  isFeatured?: boolean;
 }
 
 export const projectApi = {
@@ -90,12 +109,14 @@ export const projectApi = {
       body: JSON.stringify(data),
     }),
 
-  list: (params?: { page?: number; limit?: number; owner?: string; search?: string }) => {
+  list: (params?: { page?: number; limit?: number; owner?: string; search?: string; category?: string; featured?: boolean }) => {
     const searchParams = new URLSearchParams();
     if (params?.page) searchParams.set('page', params.page.toString());
     if (params?.limit) searchParams.set('limit', params.limit.toString());
     if (params?.owner) searchParams.set('owner', params.owner);
     if (params?.search) searchParams.set('search', params.search);
+    if (params?.category) searchParams.set('category', params.category);
+    if (params?.featured) searchParams.set('featured', 'true');
     
     const query = searchParams.toString();
     return request<Project[]>(`/api/projects${query ? `?${query}` : ''}`);
@@ -103,6 +124,9 @@ export const projectApi = {
 
   getById: (id: string) =>
     request<Project>(`/api/projects/${id}`),
+
+  getBySlug: (slug: string) =>
+    request<Project>(`/api/projects/slug/${slug}`),
 
   update: (id: string, ownerWalletAddress: string, data: Partial<CreateProjectInput>) =>
     request<Project>(`/api/projects/${id}`, {
