@@ -16,9 +16,7 @@ export default function BountyModal({ bounty, onClose, onSubmit }) {
            {/* Header */}
            <div className="p-6 border-b border-white/10 flex justify-between items-start bg-[#181820]">
              <div className="flex gap-4">
-               <div className={`w-14 h-14 rounded-xl bg-gradient-to-br ${bounty.color} flex items-center justify-center text-2xl font-bold text-white shadow-lg`}>
-                 {bounty.logo}
-               </div>
+               <img width={40} height={40} src={bounty.logo} alt={bounty.company} className="rounded-lg" />   
                <div>
                  <h2 className="text-2xl font-bold text-white">{bounty.title}</h2>
                  <div className="flex items-center gap-2 mt-1">

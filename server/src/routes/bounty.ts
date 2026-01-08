@@ -91,6 +91,7 @@ router.post('/', async (req: Request, res: Response) => {
 
 router.post('/submit', async(req : Request, res: Response) => {
     // Endpoint to handle bounty submissions
+    console.log('Received submission:', req.body);
     try {
         const {
             TeamName,
@@ -116,7 +117,7 @@ router.post('/submit', async(req : Request, res: Response) => {
                 error: 'BountyId, RepositoryLink, ProductOverview, TechnicalArchitecture, HiringDemand, walletAddress, TeamName, TeamMembers, github, linkedin, twitter, website, other and status are required',
             });
         }
-    
+        console.log('All required fields are present.');
         const submission = await Applicants.create({
             TeamName,
             TeamMembers,
@@ -133,6 +134,8 @@ router.post('/submit', async(req : Request, res: Response) => {
             website,
             other,
             status,
+            createdAt: new Date(),
+            updatedAt: new Date(),
         })
 
         return res.status(201).json({
@@ -142,7 +145,7 @@ router.post('/submit', async(req : Request, res: Response) => {
 
     } catch (error) {
         console.error('Bounty submission error:', error);
-        return res.status(500).json({
+        return res.status(501).json({
             success: false,
             error: 'Failed to submit bounty',
         });
@@ -151,9 +154,13 @@ router.post('/submit', async(req : Request, res: Response) => {
 
 router.get('/submissions/:bountyId/:walletAddress', async (req: Request, res: Response) => {
     try {
-
+        console.log('Fetching submissions with params:', req.params);
         const { bountyId, walletAddress } = req.params;
-        const submissions = await Applicants.find({ bountyId, walletAddress }).exec();
+        const submissions = await Applicants.find({
+          BountyId: bountyId,
+          walletAddress: walletAddress,
+        }).exec();
+
         return res.status(200).json({
             success: true,
             data: submissions,

@@ -6,8 +6,7 @@ import SubmitProjectModal from "../components/bounties/SubmitProjectModal";
 import LaunchCampaignModal from "../components/bounties/LaunchCampaignModal";
 import ManageCampaignModal from "../components/bounties/ManageCampaignModals";
 import { Header } from "@/components/layout";
-
-const MY_WALLET = "0x40a2387ea575b5e503d089e96bd69e49849cc121ed118970d8dd0b4f8954a947";
+import useMovementWallet from "@/hooks/useMovementWallet";
 
 
 export default function BountiesPage() {
@@ -16,7 +15,10 @@ export default function BountiesPage() {
   const [showLaunch, setShowLaunch] = useState(false);
   const [managedBounty, setManagedBounty] = useState(null);
   const [viewMode, setViewMode] = useState("explore"); // "explore" or "my-campaigns"
+  const { account } = useMovementWallet();
 
+  // Get address as string
+  const address = account?.address?.toString() ?? null;
   // Mock Data
 const initialBounties = [
   
@@ -97,7 +99,7 @@ const mapped = json.data.map((b) => ({
     ? bounties
     : bounties.filter(
         (b) =>
-          b.ownerWallet === MY_WALLET.toLowerCase()
+          b.ownerWallet === address?.toLowerCase()
       );
 
 
@@ -201,7 +203,7 @@ const mapped = json.data.map((b) => ({
         )}
 
         {showSubmit && (
-          <SubmitProjectModal bountyId={selectedBounty._id} wallet={MY_WALLET} onClose={() => setShowSubmit(false)} />
+          <SubmitProjectModal bountyId={selectedBounty.id} wallet={address} onClose={() => setShowSubmit(false)} />
         )}
 
         {showLaunch && (

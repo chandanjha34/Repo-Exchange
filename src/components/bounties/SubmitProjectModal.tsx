@@ -1,15 +1,19 @@
 import React, { useState } from "react";
 import { X, Send, Loader2 } from "lucide-react";
+import useMovementWallet from "@/hooks/useMovementWallet";
 
 export default function SubmitProjectModal({ onClose, bountyId, wallet }) {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState("");
+  const { account } = useMovementWallet();
 
+  // Get address as string
+  const address = account?.address?.toString() ?? null;
   const [form, setForm] = useState({
     TeamName: "",
     TeamMembers: "",
     BountyId: bountyId || "",
-    walletAddress: wallet || "",
+    walletAddress: address || "",
     RepositoryLink: "",
     LiveDemoURL: "",
     ProductOverview: "",
@@ -27,7 +31,7 @@ export default function SubmitProjectModal({ onClose, bountyId, wallet }) {
 
   const submit = async () => {
     setMsg("");
-
+    console.log(bountyId, wallet);
     // Basic validation
     for (let key in form) {
       if (!form[key]) return setMsg(`${key} is required`);
@@ -106,7 +110,7 @@ export default function SubmitProjectModal({ onClose, bountyId, wallet }) {
         {/* Footer */}
         <div className="p-6 border-t border-white/10 bg-[#141423]">
           <button
-            onClick={submit}
+            onClick={() => submit()}
             disabled={loading}
             className="w-full bg-green-600 hover:bg-green-500 text-white py-3 rounded-xl flex justify-center items-center gap-2 disabled:opacity-60"
           >

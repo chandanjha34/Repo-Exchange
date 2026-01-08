@@ -5,6 +5,7 @@ import { connectDB, isDBConnected } from './db/connection';
 import { usersRouter, projectsRouter, accessRouter, transactionsRouter, paymentsRouter } from './routes';
 import { paywallMiddleware } from './middleware/paywall';
 import { movementService } from './services/movement';
+import { bountyRouter } from './routes/bounty';
 
 
 const app = express();
@@ -16,6 +17,8 @@ const allowedOrigins = [
   process.env.FRONTEND_URL,
   "http://localhost:5173",
   "http://localhost:8080",
+  "http://localhost:8081",
+
 ];
 
 app.use(
@@ -57,7 +60,7 @@ app.use('/api/projects', projectsRouter);
 app.use('/api/access', accessRouter);
 app.use('/api/transactions', transactionsRouter);
 app.use('/api/payments', paymentsRouter);
-
+app.use('/api/bounty', bountyRouter);
 // 404 handler
 app.use((req, res) => {
   res.status(404).json({

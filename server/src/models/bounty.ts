@@ -42,8 +42,8 @@ const BountySchema = new Schema<IBounty>(
     deliverables: { type: String, required: true },
     evaluation: { type: [String], required: true },
     faq: { type: [String], required: true },
-    privyId: { type: String, required: true, unique: true },
-    walletAddress: { type: String, required: true, unique: true },
+    privyId: { type: String, required: true},
+    walletAddress: { type: String, required: true },
     email: { type: String },
   },
   {
