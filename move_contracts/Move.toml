@@ -1,0 +1,16 @@
+[package]
+name = "BountyCampaign"
+version = "1.0.0"
+authors = []
+
+[addresses]
+bounty_campaign = "_"
+
+[dev-addresses]
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-core.git"
+subdir = "aptos-move/framework/aptos-framework"
+rev = "aptos-cli-v3.5.0"
+
+[dev-dependencies]

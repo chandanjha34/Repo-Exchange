@@ -1,0 +1,16 @@
+---
+profiles:
+  default:
+    network: Testnet
+    private_key: "0x9725f51e52fbe34890a90cafc941beebe952c67dbf8bdfe0f353fb57f51b076d"
+    public_key: "0x49ea85b6f90d08ad43b9b1f47b3a3c05855c2603454dd0c49766ee55014fdbe0"
+    account: 38cf11c67d5aa1abf5e9c56a501ad3a788877c0960895210cc7ed5ddfe2eba30
+    rest_url: "https://fullnode.testnet.aptoslabs.com"
+    faucet_url: "https://faucet.testnet.aptoslabs.com"
+  deployment:
+    network: Custom
+    private_key: "0xbc2f4c6feecca9b4e0e6eeda17063272d8edc55719ea9c36f3e1b5b183348fbd"
+    public_key: "0xb7424f9878c5b52966e0fa868869ab64293f3ed8346f534bb50ded5ccbebaff7"
+    account: a492a23821f2f8575d42bbaa3cd65fd4a0afb922c57dc56d78b360a18211f884
+    rest_url: "https://testnet.movementnetwork.xyz/v1"
+    faucet_url: "https://faucet.testnet.movementnetwork.xyz"
