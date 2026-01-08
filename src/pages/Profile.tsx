@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useParams } from "react-router-dom";
 import { Layout } from "@/components/layout";
 import { RepositoryCard } from "@/components/repository";
-import { WalletProfileSection } from "@/components/wallet/WalletProfileSection";
+import { MovementWalletButton } from "@/components/wallet";
 import {
   MapPin,
   Link as LinkIcon,
@@ -19,27 +19,32 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { useWallet } from "@/hooks/useWallet";
+import { useMovementWallet } from "@/hooks/useMovementWallet";
 import { useProjects } from "@/hooks/useProjects";
 
 const Profile = () => {
   const { username } = useParams();
   const { isAuthenticated } = useAuth();
-  const { address, balance, isLoadingBalance } = useWallet();
+  const { address, connected } = useMovementWallet();
   const [showWallet, setShowWallet] = useState(false);
+
+  // Get wallet address (already a string or null from useMovementWallet)
+  const walletAddress = address;
 
   // Fetch user's projects (using wallet address as owner filter when available)
   const { projects: userProjects, isLoading: isLoadingProjects } = useProjects({
-    owner: address || undefined,
-    autoFetch: !!address,
+    owner: walletAddress || undefined,
+    autoFetch: !!walletAddress,
   });
 
   // User data from wallet/auth
   const user = {
-    name: address ? `${address.slice(0, 6)}...${address.slice(-4)}` : "User",
+    name: walletAddress 
+      ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` 
+      : "User",
     username: username || "me",
-    avatar: address 
-      ? `https://api.dicebear.com/7.x/identicon/svg?seed=${address}` 
+    avatar: walletAddress 
+      ? `https://api.dicebear.com/7.x/identicon/svg?seed=${walletAddress}` 
       : "https://api.dicebear.com/7.x/initials/svg?seed=User",
     bio: "Developer on layR marketplace",
     location: "",
@@ -54,7 +59,11 @@ const Profile = () => {
     },
   };
 
-  const truncateAddress = (addr: string) => `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  const truncateAddress = (addr: string | null) => {
+    if (!addr) return 'Not connected';
+    const addrStr = String(addr);
+    return `${addrStr.slice(0, 6)}...${addrStr.slice(-4)}`;
+  };
 
   // Check if viewing own profile
   const isOwnProfile = isAuthenticated && (!username || username === "me");
@@ -117,7 +126,7 @@ const Profile = () => {
                   )}
 
                   {/* Wallet Button - Only for authenticated user */}
-                  {isOwnProfile && address && (
+                  {isOwnProfile && walletAddress && (
                     <button
                       onClick={() => setShowWallet(!showWallet)}
                       className="w-full flex items-center justify-between p-3 mb-6 bg-neutral-800/50 border border-neutral-700 hover:border-neutral-600 transition-colors rounded-sm"
@@ -127,7 +136,7 @@ const Profile = () => {
                         <div className="text-left">
                           <p className="text-xs text-neutral-400">Wallet</p>
                           <p className="text-sm font-mono text-white">
-                            {isLoadingBalance ? "..." : balance ? `${balance.balance} ${balance.symbol}` : truncateAddress(address)}
+                            {truncateAddress(walletAddress)}
                           </p>
                         </div>
                       </div>
@@ -198,9 +207,23 @@ const Profile = () => {
 
             {/* Main Content */}
             <div className="lg:col-span-3 space-y-8">
-              {/* Wallet Section - Expandable */}
-              {showWallet && isOwnProfile && (
-                <WalletProfileSection />
+              {/* Wallet Section - Replaced with navbar button */}
+              {showWallet && isOwnProfile && connected && (
+                <div className="bg-neutral-900 border border-neutral-800 rounded-sm p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-xl font-heading text-white">Movement Wallet</h2>
+                    <Wallet className="w-5 h-5 text-neutral-400" />
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-sm text-neutral-400 mb-1">Wallet Address</p>
+                      <p className="text-white font-mono text-sm break-all">{walletAddress}</p>
+                    </div>
+                    <p className="text-sm text-neutral-400">
+                      Use the "Connect Wallet" button in the navbar to manage your Movement wallet.
+                    </p>
+                  </div>
+                </div>
               )}
 
               {/* Stats Grid - Only for own profile */}

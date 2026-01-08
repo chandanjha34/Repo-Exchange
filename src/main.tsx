@@ -1,5 +1,6 @@
 import { createRoot } from "react-dom/client";
 import { PrivyProvider } from "@privy-io/react-auth";
+import { AptosWalletAdapterProvider } from "@aptos-labs/wallet-adapter-react";
 import App from "./App.tsx";
 import "./index.css";
 
@@ -31,16 +32,20 @@ createRoot(document.getElementById("root")!).render(
         theme: 'dark',
         accentColor: '#ffffff',
         logo: '/layR logo.png',
-        // Hide external wallet options by providing empty wallet list
-        walletList: [],
       },
-      embeddedWallets: {
-        ethereum: {
-          createOnLogin: 'all-users',
-        },
-      },
+      loginMethods: ['email', 'google'],
     }}
   >
-    <App />
+    <AptosWalletAdapterProvider
+      autoConnect={true}
+      onError={(error) => {
+        // Suppress network errors for Aptos Connect wallets
+        if (!error.message?.includes('Network not supported')) {
+          console.error("Wallet adapter error:", error);
+        }
+      }}
+    >
+      <App />
+    </AptosWalletAdapterProvider>
   </PrivyProvider>
 );

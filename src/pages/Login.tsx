@@ -3,31 +3,33 @@ import { Link, useNavigate } from "react-router-dom";
 import { HomepageNavbar } from "@/components/homepage";
 import { ArrowRight, Loader2 } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
+import { useUser } from "@/contexts/UserContext";
 
 const Login = () => {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading, ready, login } = useAuth();
+  const { userId, isRegistering } = useUser();
 
-  // Redirect authenticated users to dashboard
+  // Redirect authenticated users with userId to dashboard
   useEffect(() => {
-    if (ready && isAuthenticated) {
+    if (ready && isAuthenticated && userId && !isRegistering) {
       navigate("/profile/me");
     }
-  }, [ready, isAuthenticated, navigate]);
+  }, [ready, isAuthenticated, userId, isRegistering, navigate]);
 
   const handleLogin = () => {
     login();
   };
 
-  // Show loading state while Privy initializes
-  if (!ready) {
+  // Show loading state while Privy initializes or user is registering
+  if (!ready || isRegistering) {
     return (
       <div className="min-h-screen bg-black">
         <HomepageNavbar />
         <div className="min-h-[calc(100vh-4rem)] flex items-center justify-center px-4 py-12">
           <div className="flex items-center gap-2 text-neutral-400">
             <Loader2 className="w-5 h-5 animate-spin" />
-            <span>Loading...</span>
+            <span>{isRegistering ? 'Setting up your account...' : 'Loading...'}</span>
           </div>
         </div>
       </div>

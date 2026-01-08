@@ -5,7 +5,10 @@ A decentralized marketplace for discovering, sharing, and monetizing high-qualit
 ## 🚀 Features
 
 - **Repository Marketplace**: Browse and discover premium code repositories
-- **Wallet Integration**: Privy-powered embedded Ethereum wallets (Sepolia testnet)
+- **Privy Authentication**: Email and social login for user accounts
+- **Movement Wallet Integration**: Connect Petra or Razor wallet for transactions
+- **Payment System**: Direct peer-to-peer payments on Movement blockchain (Aptos-based)
+- **On-Chain Access Control**: Trustless access verification via Movement smart contracts
 - **User Profiles**: Showcase your projects with detailed stats and analytics
 - **Project Management**: Upload, manage, and monetize your code repositories
 - **Dark Theme**: GitHub-inspired black/white/neutral aesthetic with glass morphism
@@ -21,7 +24,8 @@ A decentralized marketplace for discovering, sharing, and monetizing high-qualit
 - **shadcn/ui** component library
 - **React Router** for navigation
 - **TanStack Query** for data fetching
-- **Privy** for wallet authentication
+- **Privy** for authentication (email/social)
+- **Aptos Wallet Adapter** for Movement wallet integration
 
 ### Backend
 - **Node.js** with Express
@@ -30,9 +34,10 @@ A decentralized marketplace for discovering, sharing, and monetizing high-qualit
 - **MongoDB Atlas** for cloud database
 
 ### Blockchain
-- **Ethereum** (Sepolia testnet)
-- **Privy Embedded Wallets**
-- **ethers.js** for blockchain interactions
+- **Movement** blockchain (Aptos-based, Chain ID: 250)
+- **Aptos SDK** for blockchain interactions
+- **Movement Smart Contracts** (Move language)
+- **Petra Wallet** and **Razor Wallet** support
 
 ## 📦 Project Structure
 
@@ -87,17 +92,42 @@ cd ..
 
 3. **Environment Setup**
 
-Create `.env` in the root directory:
-```env
-VITE_PRIVY_APP_ID=your_privy_app_id
-VITE_API_URL=http://localhost:3001
+Copy the example files and fill in your values:
+```bash
+cp .env.example .env
+cp server/.env.example server/.env
 ```
 
-Create `server/.env`:
-```env
-PORT=3001
-MONGODB_URI=your_mongodb_connection_string
-```
+#### Frontend Environment Variables (`.env`)
+
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `VITE_PRIVY_APP_ID` | Your Privy application ID | Yes | `cmjsp6eev015pk00cfg0sp2qc` |
+| `VITE_API_URL` | Backend API URL | Yes | `http://localhost:3001` |
+| `VITE_MOVEMENT_CHAIN_ID` | Movement blockchain chain ID | Yes | `250` (testnet) |
+| `MONGODB_URI` | MongoDB connection string | Yes | `mongodb+srv://...` |
+
+#### Backend Environment Variables (`server/.env`)
+
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `PORT` | Server port | Yes | `3001` |
+| `MONGODB_URI` | MongoDB connection string | Yes | `mongodb+srv://...` |
+| `FRONTEND_URL` | Frontend URL for CORS | Yes | `http://localhost:5173` |
+| `MOVEMENT_RPC_URL` | Movement blockchain RPC endpoint | Yes | `https://testnet.movementnetwork.xyz/v1` |
+| `MOVEMENT_CHAIN_ID` | Movement blockchain chain ID | Yes | `250` (testnet) |
+| `MOVEMENT_CONTRACT_ADDRESS` | Deployed access control contract address | Yes | `0x...` |
+| `MOVEMENT_ADMIN_PRIVATE_KEY` | Admin private key for granting access | Yes | `0x...` |
+| `X402_FACILITATOR_URL` | x402 payment facilitator URL | Yes | `https://facilitator.stableyard.fi` |
+| `VIEW_PRICE_MOVE` | Price for view access (in smallest unit, 8 decimals) | Yes | `50000000` (0.5 MOVE) |
+| `DOWNLOAD_PRICE_MOVE` | Price for download access (in smallest unit, 8 decimals) | Yes | `100000000` (1 MOVE) |
+
+**Important Notes:**
+- **MOVEMENT_ADMIN_PRIVATE_KEY**: Keep this secure! Never commit to version control. This key is used to sign transactions that grant on-chain access.
+- **Pricing**: MOVE token uses 8 decimals. `50000000` = 0.5 MOVE, `100000000` = 1 MOVE
+- **Contract Address**: You must deploy the Movement access control contract first and use its address
+- **Network**: Start with Movement testnet before deploying to mainnet
+- **Payment Flow**: Payments go directly to project owners (peer-to-peer), not to a centralized address
 
 4. **Start Development Servers**
 
@@ -112,6 +142,51 @@ npm run dev
 
 Frontend: http://localhost:8080
 Backend: http://localhost:3001
+
+## 💰 Payment Integration Setup
+
+### Movement Blockchain Configuration
+
+1. **Get Testnet Tokens**
+   - Visit the faucet: https://faucet.testnet.movementnetwork.xyz/
+   - Request testnet MOVE tokens for your wallet
+   - Use the explorer to verify: https://explorer.movementnetwork.xyz/?network=bardock+testnet
+
+2. **Deploy Access Control Contract**
+   - Deploy the `layr::access` Move contract to Movement testnet
+   - Note the contract address for `MOVEMENT_CONTRACT_ADDRESS`
+   - Testnet Chain ID: **250**
+   - RPC URL: **https://testnet.movementnetwork.xyz/v1**
+
+3. **Configure Admin Account**
+   - Create or use an existing Movement wallet
+   - Fund it with testnet MOVE tokens from the faucet
+   - Export the private key for `MOVEMENT_ADMIN_PRIVATE_KEY`
+   - Use the address for `MOVEMENT_PAY_TO` (payment recipient)
+
+4. **Test Payment Flow**
+   - Use Movement testnet first
+   - Test payment initiation, signing, and verification
+   - Verify on-chain access grants work correctly
+   - Monitor transactions on Movement explorer: https://explorer.movementnetwork.xyz/?network=bardock+testnet
+
+5. **Security Checklist**
+   - ✅ Admin private key stored in environment variable only
+   - ✅ Never commit `.env` files to version control
+   - ✅ Use different keys for testnet and mainnet
+   - ✅ Regularly rotate admin keys
+   - ✅ Monitor admin account balance for gas
+
+### x402 Protocol
+
+The system uses x402 (HTTP 402 Payment Required) protocol for payment flow:
+- Payment requests are initiated through x402 middleware
+- Users sign transactions with Privy embedded wallets
+- **Payments go directly to project owners** (peer-to-peer marketplace)
+- Payments are verified on Movement blockchain
+- Access is granted via smart contract calls
+
+**Key Feature:** Unlike traditional marketplaces, layR operates as a true peer-to-peer platform where creators receive payments directly without intermediaries or platform fees.
 
 ## 🗄️ Database Models
 
@@ -191,6 +266,11 @@ Uses Privy for wallet-based authentication:
 - `PUT /api/transactions/:id/confirm` - Confirm transaction
 - `GET /api/transactions/user/:walletAddress` - Get user transactions
 - `GET /api/transactions/project/:projectId` - Get project transactions
+
+### Payments (x402 + Movement)
+- `POST /api/payments/initiate` - Initiate payment for repository access
+- `POST /api/payments/verify` - Verify payment and grant on-chain access
+- `GET /api/payments/check-access/:projectId` - Check user access (queries on-chain state)
 
 ## 🧪 Development
 

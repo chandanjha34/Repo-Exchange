@@ -8,16 +8,19 @@ export type AccessType = 'view' | 'download';
 /**
  * Access interface
  * Tracks which wallet has access to which project
- * Critical for syncing with Move on-chain access
+ * Synced with Move on-chain access contract
  */
 export interface IAccess extends Document {
   projectId: Types.ObjectId;
   walletAddress: string;
   accessType: AccessType;
   grantedAt: Date;
-  // For future x402/Move integration
+  // Movement blockchain integration
   txHash?: string;
   onChainVerified: boolean;
+  contractAddress?: string;
+  grantTxHash?: string;
+  transactionId?: Types.ObjectId;
 }
 
 const AccessSchema = new Schema<IAccess>(
@@ -43,7 +46,7 @@ const AccessSchema = new Schema<IAccess>(
       type: Date,
       default: Date.now,
     },
-    // For future blockchain verification
+    // Movement blockchain verification
     txHash: {
       type: String,
       sparse: true,
@@ -51,6 +54,20 @@ const AccessSchema = new Schema<IAccess>(
     onChainVerified: {
       type: Boolean,
       default: false,
+      index: true,
+    },
+    contractAddress: {
+      type: String,
+    },
+    grantTxHash: {
+      type: String,
+      sparse: true,
+      index: true,
+    },
+    transactionId: {
+      type: Schema.Types.ObjectId,
+      ref: 'Transaction',
+      index: true,
     },
   },
   {

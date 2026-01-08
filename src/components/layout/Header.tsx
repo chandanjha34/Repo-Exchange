@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, Menu, X, Plus, LogOut, User } from "lucide-react";
 import { useState } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { WalletButton } from "../wallet";
+import { MovementWalletButton } from "../wallet";
 
 export function Header() {
   const location = useLocation();
@@ -86,7 +86,7 @@ export function Header() {
                   </button>
                 </Link>
 
-                <WalletButton />
+                <MovementWalletButton />
 
                 <button 
                   onClick={handleLogout}

@@ -3,11 +3,15 @@ import mongoose, { Schema, Document } from 'mongoose';
 /**
  * User interface
  * Represents users authenticated via Privy
+ * User profile is based on Privy authentication, not wallet address
+ * Wallet connection is optional and used for payments only
  */
 export interface IUser extends Document {
-  privyId: string;
-  walletAddress: string;
-  email?: string;
+  privyId: string; // Unique identifier from Privy
+  name: string; // User's display name
+  email: string; // User's email address
+  avatar?: string; // Optional avatar URL
+  walletAddress?: string; // Optional wallet address for payments only
   createdAt: Date;
   updatedAt: Date;
 }
@@ -20,15 +24,26 @@ const UserSchema = new Schema<IUser>(
       unique: true,
       index: true,
     },
-    walletAddress: {
+    name: {
       type: String,
       required: true,
-      index: true,
-      lowercase: true,
     },
     email: {
       type: String,
-      sparse: true,
+      required: true,
+      unique: true,
+      index: true,
+      lowercase: true,
+    },
+    avatar: {
+      type: String,
+      required: false,
+    },
+    walletAddress: {
+      type: String,
+      required: false,
+      index: true,
+      sparse: true, // Sparse index for optional field
       lowercase: true,
     },
   },
@@ -36,8 +51,5 @@ const UserSchema = new Schema<IUser>(
     timestamps: true,
   }
 );
-
-// Compound index for efficient lookups
-UserSchema.index({ walletAddress: 1, privyId: 1 });
 
 export const User = mongoose.model<IUser>('User', UserSchema);

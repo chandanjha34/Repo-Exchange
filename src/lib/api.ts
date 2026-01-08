@@ -8,6 +8,8 @@ interface ApiResponse<T> {
   success: boolean;
   data?: T;
   error?: string;
+  requiresWallet?: boolean; // Indicates if operation requires wallet connection
+  message?: string; // Additional message for user
   pagination?: {
     page: number;
     limit: number;
@@ -21,7 +23,7 @@ async function request<T>(
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
   const url = `${API_BASE}${endpoint}`;
-  
+
   const config: RequestInit = {
     ...options,
     headers: {
@@ -44,7 +46,38 @@ async function request<T>(
 }
 
 // User APIs
+export interface UserProfile {
+  _id: string;
+  privyId: string;
+  email: string;
+  name: string;
+  avatar?: string;
+  walletAddress?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RegisterUserInput {
+  privyId: string;
+  email: string;
+  name: string;
+}
+
+export interface RegisterUserResponse {
+  userId: string;
+  profile: UserProfile;
+}
+
 export const userApi = {
+  register: (data: RegisterUserInput) =>
+    request<RegisterUserResponse>('/api/users/register', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  getById: (userId: string) =>
+    request<UserProfile>(`/api/users/${userId}`),
+
   sync: (privyId: string, walletAddress: string, email?: string) =>
     request('/api/users/sync', {
       method: 'POST',
@@ -62,11 +95,12 @@ export interface Project {
   slug: string;
   shortDescription: string;
   description: string;
-  ownerWalletAddress: string;
+  ownerId: string;
+  ownerWalletAddress?: string;
   ownerName: string;
   ownerAvatar?: string;
-  priceView: number;
-  priceDownload: number;
+  demoPrice: number;
+  downloadPrice: number;
   isPublished: boolean;
   isFeatured: boolean;
   technologies: string[];
@@ -75,9 +109,12 @@ export interface Project {
   previewImage?: string;
   zipFileUrl?: string;
   demoUrl?: string;
-  stars: number;
-  forks: number;
-  downloads: number;
+  stats: {
+    likes: number;
+    forks: number;
+    downloads: number;
+    views: number;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -87,11 +124,11 @@ export interface CreateProjectInput {
   slug: string;
   shortDescription: string;
   description: string;
-  ownerWalletAddress: string;
+  userId: string;
   ownerName: string;
   ownerAvatar?: string;
-  priceView?: number;
-  priceDownload?: number;
+  demoPrice?: number;
+  downloadPrice?: number;
   technologies?: string[];
   category?: string;
   images?: string[];
@@ -117,7 +154,7 @@ export const projectApi = {
     if (params?.search) searchParams.set('search', params.search);
     if (params?.category) searchParams.set('category', params.category);
     if (params?.featured) searchParams.set('featured', 'true');
-    
+
     const query = searchParams.toString();
     return request<Project[]>(`/api/projects${query ? `?${query}` : ''}`);
   },

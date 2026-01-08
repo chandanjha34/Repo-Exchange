@@ -1,0 +1,16 @@
+[package]
+name = "layr"
+version = "1.0.0"
+authors = []
+
+[addresses]
+layr = "a492a23821f2f8575d42bbaa3cd65fd4a0afb922c57dc56d78b360a18211f884"
+
+[dev-addresses]
+
+[dependencies.AptosFramework]
+git = "https://github.com/aptos-labs/aptos-core.git"
+subdir = "aptos-move/framework/aptos-framework"
+rev = "aptos-cli-v3.5.0"
+
+[dev-dependencies]

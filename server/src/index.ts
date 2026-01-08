@@ -2,8 +2,9 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import { connectDB, isDBConnected } from './db/connection';
-import { usersRouter, projectsRouter, accessRouter, transactionsRouter } from './routes';
+import { usersRouter, projectsRouter, accessRouter, transactionsRouter, paymentsRouter } from './routes';
 import { paywallMiddleware } from './middleware/paywall';
+import { movementService } from './services/movement';
 
 
 const app = express();
@@ -44,6 +45,7 @@ app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     database: isDBConnected() ? 'connected' : 'disconnected',
+    blockchain: movementService.isServiceConnected() ? 'connected' : 'disconnected',
     timestamp: new Date().toISOString(),
   });
 });
@@ -54,6 +56,7 @@ app.use('/api/users', usersRouter);
 app.use('/api/projects', projectsRouter);
 app.use('/api/access', accessRouter);
 app.use('/api/transactions', transactionsRouter);
+app.use('/api/payments', paymentsRouter);
 
 // 404 handler
 app.use((req, res) => {
@@ -77,6 +80,14 @@ async function start() {
   try {
     // Connect to MongoDB
     await connectDB();
+    
+    // Connect to Movement blockchain
+    const rpcUrl = process.env.MOVEMENT_RPC_URL || 'https://testnet.movementnetwork.xyz/v1';
+    const chainId = parseInt(process.env.MOVEMENT_CHAIN_ID || '250', 10);
+    
+    console.log('[Movement] Connecting to Movement network...');
+    await movementService.connect(rpcUrl, chainId);
+    console.log('[Movement] Connected to Movement network');
     
     // Start Express server
     app.listen(PORT, () => {

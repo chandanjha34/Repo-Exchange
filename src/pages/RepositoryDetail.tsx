@@ -2,27 +2,50 @@ import { useParams, Link } from "react-router-dom";
 import { Layout } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
 import { useProjectBySlug } from "@/hooks/useProjects";
+import { useAccess } from "@/hooks/useAccess";
+import { usePrivy } from "@privy-io/react-auth";
+import { useState } from "react";
+import { formatPrice } from "@/lib/utils";
 import {
   Star,
   GitFork,
   Download,
-  ExternalLink,
-  Phone,
   Share2,
   Calendar,
   Scale,
   ArrowLeft,
   Check,
+  Lock,
+  Eye,
+  User,
 } from "lucide-react";
-import { useState } from "react";
+import { PurchaseModal } from "@/components/payment/PurchaseModal";
 
 const RepositoryDetail = () => {
   const { slug } = useParams();
-  const { project, isLoading, error } = useProjectBySlug(slug);
-  const [hoverOnFork,sethoverOnFork]= useState(false);
-  const [hoverOnCall,sethoverOnCall]= useState(false);
+  const { project, isLoading, error, refetch } = useProjectBySlug(slug);
+  const { hasDemo, hasDownload, isOwner, isLoading: accessLoading, refetch: refetchAccess } = useAccess(project?._id);
+  const { user } = usePrivy();
+  const [purchaseModalOpen, setPurchaseModalOpen] = useState(false);
+  const [selectedAccessType, setSelectedAccessType] = useState<'demo' | 'download'>('demo');
+
+  const userAddress = user?.wallet?.address;
+
+  // Access levels from the new useAccess hook
+  const hasViewAccess = hasDemo || isOwner;
+  const hasDownloadAccess = hasDownload || isOwner;
+
+  const handlePaymentSuccess = () => {
+    // Refetch access status after successful payment
+    refetchAccess();
+    refetch();
+  };
+
+  const handlePurchaseClick = (type: 'demo' | 'download') => {
+    setSelectedAccessType(type);
+    setPurchaseModalOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -140,21 +163,21 @@ const RepositoryDetail = () => {
                 <div className="flex items-center gap-2">
                   <Star className="w-5 h-5 text-white" />
                   <span className="font-semibold text-white">
-                    {project.stars.toLocaleString()}
+                    {project.stats?.likes?.toLocaleString() || 0}
                   </span>
                   <span className="text-sm text-neutral-400">stars</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <GitFork className="w-5 h-5 text-white" />
                   <span className="font-semibold text-white">
-                    {project.forks.toLocaleString()}
+                    {project.stats?.forks?.toLocaleString() || 0}
                   </span>
                   <span className="text-sm text-neutral-400">forks</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Download className="w-5 h-5 text-white" />
                   <span className="font-semibold text-white">
-                    {project.downloads.toLocaleString()}
+                    {project.stats?.downloads?.toLocaleString() || 0}
                   </span>
                   <span className="text-sm text-neutral-400">downloads</span>
                 </div>
@@ -162,72 +185,154 @@ const RepositoryDetail = () => {
             </div>
 
             {/* Description */}
-            <div className="relative bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-sm p-6">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent rounded-sm pointer-events-none" />
-              <div className="relative">
-                <h2 className="font-heading text-xl font-semibold text-white mb-4">
-                  About this Project
-                </h2>
-                <div className="prose prose-invert max-w-none text-neutral-400">
-                  <p>{project.description}</p>
+            {hasViewAccess ? (
+              <div className="relative bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-sm p-6">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent rounded-sm pointer-events-none" />
+                <div className="relative">
+                  <h2 className="font-heading text-xl font-semibold text-white mb-4">
+                    About this Project
+                  </h2>
+                  <div className="prose prose-invert max-w-none text-neutral-400">
+                    <p>{project.description}</p>
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="relative bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-sm p-6">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent rounded-sm pointer-events-none" />
+                <div className="relative text-center py-8">
+                  <Lock className="w-12 h-12 text-neutral-600 mx-auto mb-4" />
+                  <h2 className="font-heading text-xl font-semibold text-white mb-2">
+                    Demo Access Required
+                  </h2>
+                  <p className="text-neutral-400 mb-4">
+                    Purchase demo access to view full project details
+                  </p>
+                  <Button
+                    onClick={() => handlePurchaseClick('demo')}
+                    className="bg-white text-black hover:bg-neutral-200"
+                  >
+                    <Eye className="w-4 h-4" />
+                    View Demo - {formatPrice(project.demoPrice)}
+                  </Button>
+                </div>
+              </div>
+            )}
 
             {/* What's Included */}
-            <div className="relative bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-sm p-6">
-              <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent rounded-sm pointer-events-none" />
-              <div className="relative">
-                <h2 className="font-heading text-xl font-semibold text-white mb-4">
-                  What's Included
-                </h2>
-                <ul className="space-y-3">
-                  {features.map((feature) => (
-                    <li key={feature} className="flex items-center gap-3">
-                      <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
-                        <Check className="w-3 h-3 text-white" />
-                      </div>
-                      <span className="text-neutral-400">{feature}</span>
-                    </li>
-                  ))}
-                </ul>
+            {hasViewAccess && (
+              <div className="relative bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-sm p-6">
+                <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent rounded-sm pointer-events-none" />
+                <div className="relative">
+                  <h2 className="font-heading text-xl font-semibold text-white mb-4">
+                    What's Included
+                  </h2>
+                  <ul className="space-y-3">
+                    {features.map((feature) => (
+                      <li key={feature} className="flex items-center gap-3">
+                        <div className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center">
+                          <Check className="w-3 h-3 text-white" />
+                        </div>
+                        <span className="text-neutral-400">{feature}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Action Card */}
+            {/* Pricing & Action Card */}
             <div className="relative bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-sm p-6 sticky top-24">
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent rounded-sm pointer-events-none" />
               <div className="relative space-y-4">
-                {project.demoUrl && (
-                  <a 
-                    href={project.demoUrl} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="w-full px-4 py-3 bg-white text-black font-medium rounded-sm hover:bg-neutral-200 transition-colors flex items-center justify-center gap-2"
-                  >
-                    <ExternalLink className="w-4 h-4" />
-                    Live Demo
-                  </a>
-                )}
+                <h3 className="font-heading text-lg font-semibold text-white mb-4">
+                  Access Options
+                </h3>
 
-                <button className="w-full px-4 py-3 bg-neutral-800 text-white font-medium rounded-sm hover:bg-neutral-700 transition-colors flex items-center justify-center gap-2"
-                onMouseEnter={()=>sethoverOnFork(true)}
-                onMouseLeave={()=>sethoverOnFork(false)}
-                >
-                  <GitFork className="w-4 h-4" />
-                  {hoverOnFork?`$ ${project.priceDownload}`: "Fork Project"}
-                </button>
+                {/* Demo Access */}
+                <div className="p-4 bg-neutral-800/50 rounded-sm border border-neutral-700 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Eye className="w-4 h-4 text-white" />
+                        <h4 className="font-medium text-white">Demo Access</h4>
+                      </div>
+                      <p className="text-xs text-neutral-400">
+                        View project details and preview
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-white">
+                        {formatPrice(project.demoPrice)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {hasViewAccess ? (
+                    <div className="flex items-center gap-2 text-sm text-green-400">
+                      <Check className="w-4 h-4" />
+                      <span>You have access</span>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => handlePurchaseClick('demo')}
+                      className="w-full bg-white text-black hover:bg-neutral-200"
+                    >
+                      <Eye className="w-4 h-4" />
+                      View Demo
+                    </Button>
+                  )}
+                </div>
 
-                <button className="w-full px-4 py-3 border border-neutral-700 text-neutral-300 font-medium rounded-sm hover:border-neutral-600 hover:text-white transition-colors flex items-center justify-center gap-2"
-                onMouseEnter={()=>sethoverOnCall(true)}
-                onMouseLeave={()=>sethoverOnCall(false)}
-                >
-                  <Phone className="w-4 h-4" />
-                  {hoverOnCall?`$ ${project.priceView}`: "Book a Call"}
-                </button>
+                {/* Download Access */}
+                <div className="p-4 bg-neutral-800/50 rounded-sm border border-neutral-700 space-y-3">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <Download className="w-4 h-4 text-white" />
+                        <h4 className="font-medium text-white">Full Download</h4>
+                      </div>
+                      <p className="text-xs text-neutral-400">
+                        Complete source code and files
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-lg font-bold text-white">
+                        {formatPrice(project.downloadPrice)}
+                      </p>
+                    </div>
+                  </div>
+                  
+                  {hasDownloadAccess ? (
+                    <>
+                      <div className="flex items-center gap-2 text-sm text-green-400 mb-2">
+                        <Check className="w-4 h-4" />
+                        <span>You have access</span>
+                      </div>
+                      <Button
+                        onClick={() => {
+                          // TODO: Implement download functionality
+                          console.log('Download project');
+                        }}
+                        className="w-full bg-neutral-700 text-white hover:bg-neutral-600"
+                      >
+                        <Download className="w-4 h-4" />
+                        Download Project
+                      </Button>
+                    </>
+                  ) : (
+                    <Button
+                      onClick={() => handlePurchaseClick('download')}
+                      className="w-full bg-white text-black hover:bg-neutral-200"
+                    >
+                      <Download className="w-4 h-4" />
+                      Purchase Download
+                    </Button>
+                  )}
+                </div>
 
                 <button className="w-full px-4 py-3 border border-neutral-700 text-neutral-300 font-medium rounded-sm hover:border-neutral-600 hover:text-white transition-colors flex items-center justify-center gap-2">
                   <Share2 className="w-4 h-4" />
@@ -257,7 +362,10 @@ const RepositoryDetail = () => {
             <div className="relative bg-neutral-900/50 backdrop-blur-sm border border-neutral-800 rounded-sm p-6">
               <div className="absolute inset-0 bg-gradient-to-br from-white/[0.03] to-transparent rounded-sm pointer-events-none" />
               <div className="relative">
-                <h3 className="font-semibold text-white mb-4">About the Author</h3>
+                <h3 className="font-semibold text-white mb-4 flex items-center gap-2">
+                  <User className="w-4 h-4" />
+                  Project Owner
+                </h3>
                 <div className="flex items-center gap-3">
                   <img
                     src={project.ownerAvatar || `https://api.dicebear.com/7.x/initials/svg?seed=${project.ownerName}`}
@@ -268,15 +376,28 @@ const RepositoryDetail = () => {
                     <p className="font-medium text-white">
                       {project.ownerName}
                     </p>
-                    <p className="text-sm text-neutral-400">
-                      Project Creator
-                    </p>
+                    {project.ownerWalletAddress && (
+                      <p className="text-sm text-neutral-400">
+                        {project.ownerWalletAddress.slice(0, 6)}...{project.ownerWalletAddress.slice(-4)}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
           </div>
         </div>
+
+        {/* Purchase Modal */}
+        {project && (
+          <PurchaseModal
+            isOpen={purchaseModalOpen}
+            onClose={() => setPurchaseModalOpen(false)}
+            project={project}
+            accessType={selectedAccessType}
+            onSuccess={handlePaymentSuccess}
+          />
+        )}
       </div>
     </Layout>
   );

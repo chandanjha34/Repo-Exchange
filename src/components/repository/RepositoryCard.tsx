@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
-import { Star, GitFork, ExternalLink, Phone, Download } from "lucide-react";
+import { Star, GitFork, Download, Eye } from "lucide-react";
 import { Project } from "@/lib/api";
+import { formatPrice } from "@/lib/utils";
 
 interface RepositoryCardProps {
   project: Project;
@@ -31,21 +32,20 @@ export function RepositoryCard({ project }: RepositoryCardProps) {
 
         {/* Quick Actions Overlay */}
         <div className="absolute inset-0 flex items-center justify-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 bg-black/60 backdrop-blur-sm">
-          {project.demoUrl && (
-            <a 
-              href={project.demoUrl} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="px-4 py-2 bg-white text-black text-sm font-medium rounded-sm hover:bg-neutral-200 transition-colors flex items-center gap-2"
-            >
-              <ExternalLink className="w-4 h-4" />
-              Live Demo
-            </a>
-          )}
-          <button className="px-4 py-2 border border-white text-white text-sm font-medium rounded-sm hover:bg-white hover:text-black transition-colors flex items-center gap-2">
-            <Phone className="w-4 h-4" />
-            Book Call
-          </button>
+          <Link 
+            to={`/repository/${project.slug}`}
+            className="px-4 py-2 bg-white text-black text-sm font-medium rounded-sm hover:bg-neutral-200 transition-colors flex items-center gap-2"
+          >
+            <Eye className="w-4 h-4" />
+            View Demo
+          </Link>
+          <Link 
+            to={`/repository/${project.slug}`}
+            className="px-4 py-2 border border-white text-white text-sm font-medium rounded-sm hover:bg-white hover:text-black transition-colors flex items-center gap-2"
+          >
+            <Download className="w-4 h-4" />
+            Download
+          </Link>
         </div>
       </div>
 
@@ -94,16 +94,28 @@ export function RepositoryCard({ project }: RepositoryCardProps) {
           <div className="flex items-center gap-4">
             <button className="flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white transition-colors">
               <Star className="w-4 h-4" />
-              <span>{project.stars.toLocaleString()}</span>
+              <span>{project.stats?.likes?.toLocaleString() || 0}</span>
             </button>
             <button className="flex items-center gap-1.5 text-sm text-neutral-400 hover:text-white transition-colors">
               <GitFork className="w-4 h-4" />
-              <span>{project.forks.toLocaleString()}</span>
+              <span>{project.stats?.forks?.toLocaleString() || 0}</span>
             </button>
             <span className="flex items-center gap-1.5 text-sm text-neutral-400">
               <Download className="w-4 h-4" />
-              <span>{project.downloads.toLocaleString()}</span>
+              <span>{project.stats?.downloads?.toLocaleString() || 0}</span>
             </span>
+          </div>
+          
+          {/* Pricing */}
+          <div className="flex flex-col items-end gap-1">
+            <div className="flex items-center gap-1 text-xs text-neutral-400">
+              <Eye className="w-3 h-3" />
+              <span>{formatPrice(project.demoPrice)}</span>
+            </div>
+            <div className="flex items-center gap-1 text-xs text-neutral-400">
+              <Download className="w-3 h-3" />
+              <span>{formatPrice(project.downloadPrice)}</span>
+            </div>
           </div>
         </div>
       </div>

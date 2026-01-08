@@ -1,4 +1,4 @@
-import mongoose, { Schema, Document } from 'mongoose';
+import mongoose, { Schema, Document, Types } from 'mongoose';
 
 /**
  * Project interface
@@ -9,11 +9,12 @@ export interface IProject extends Document {
   slug: string;
   shortDescription: string;
   description: string;
-  ownerWalletAddress: string;
+  ownerId: Types.ObjectId; // Reference to User
+  ownerWalletAddress: string; // Kept for backward compatibility during migration
   ownerName: string;
   ownerAvatar?: string;
-  priceView: number;
-  priceDownload: number;
+  demoPrice: number; // Renamed from priceView
+  downloadPrice: number; // Renamed from priceDownload
   isPublished: boolean;
   isFeatured: boolean;
   technologies: string[];
@@ -22,9 +23,12 @@ export interface IProject extends Document {
   previewImage?: string;
   zipFileUrl?: string;
   demoUrl?: string;
-  stars: number;
-  forks: number;
-  downloads: number;
+  stats: {
+    likes: number;
+    forks: number;
+    downloads: number;
+    views: number;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -56,9 +60,14 @@ const ProjectSchema = new Schema<IProject>(
       trim: true,
       maxlength: 5000,
     },
+    ownerId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+      index: true,
+    },
     ownerWalletAddress: {
       type: String,
-      required: true,
       index: true,
       lowercase: true,
     },
@@ -70,13 +79,13 @@ const ProjectSchema = new Schema<IProject>(
     ownerAvatar: {
       type: String,
     },
-    priceView: {
+    demoPrice: {
       type: Number,
       required: true,
       min: 0,
       default: 0,
     },
-    priceDownload: {
+    downloadPrice: {
       type: Number,
       required: true,
       min: 0,
@@ -112,17 +121,23 @@ const ProjectSchema = new Schema<IProject>(
     demoUrl: {
       type: String,
     },
-    stars: {
-      type: Number,
-      default: 0,
-    },
-    forks: {
-      type: Number,
-      default: 0,
-    },
-    downloads: {
-      type: Number,
-      default: 0,
+    stats: {
+      likes: {
+        type: Number,
+        default: 0,
+      },
+      forks: {
+        type: Number,
+        default: 0,
+      },
+      downloads: {
+        type: Number,
+        default: 0,
+      },
+      views: {
+        type: Number,
+        default: 0,
+      },
     },
   },
   {
@@ -133,7 +148,8 @@ const ProjectSchema = new Schema<IProject>(
 // Indexes for common queries
 ProjectSchema.index({ isPublished: 1, createdAt: -1 });
 ProjectSchema.index({ isPublished: 1, isFeatured: 1, createdAt: -1 });
-ProjectSchema.index({ ownerWalletAddress: 1, createdAt: -1 });
+ProjectSchema.index({ ownerId: 1, createdAt: -1 });
+ProjectSchema.index({ ownerWalletAddress: 1, createdAt: -1 }); // Kept for backward compatibility
 ProjectSchema.index({ category: 1 });
 ProjectSchema.index({ title: 'text', shortDescription: 'text', description: 'text' });
 

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Search, Menu, X, Plus, User, LogOut } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
-import { WalletButton } from "@/components/wallet";
+import { MovementWalletButton } from "@/components/wallet";
 
 /**
  * HomepageNavbar - A minimal, GitHub-inspired navigation bar for the homepage
@@ -68,7 +68,7 @@ export function HomepageNavbar() {
                   </button>
                 </Link>
 
-                <WalletButton />
+                <MovementWalletButton />
 
                 <button 
                   onClick={handleLogout}
@@ -135,9 +135,12 @@ export function HomepageNavbar() {
                 <Link to="/profile/me" onClick={() => setIsMobileMenuOpen(false)}>
                   <button className="w-full px-4 py-2.5 border border-neutral-800 text-neutral-300 hover:text-white hover:border-neutral-600 transition-colors rounded-sm text-sm flex items-center justify-center gap-2">
                     <User className="w-4 h-4" />
-                    Profile & Wallet
+                    Profile
                   </button>
                 </Link>
+                <div className="w-full">
+                  <MovementWalletButton />
+                </div>
                 <button 
                   onClick={() => {
                     setIsMobileMenuOpen(false);

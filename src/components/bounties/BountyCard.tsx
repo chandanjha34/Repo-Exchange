@@ -11,9 +11,7 @@ export default function BountyCard({ bounty, onOpen, isOwner, onManage }) {
 
       <div className="flex justify-between items-start mb-6 relative z-10">
         <div className="flex items-center gap-3">
-          <div className={`w-10 h-10 rounded-lg bg-gradient-to-br ${bounty.color} flex items-center justify-center text-white font-bold shadow-lg`}>
-            {bounty.logo}
-          </div>
+          <img width={40} height={40} src={bounty.logo} alt={bounty.company} className="rounded-lg" />
           <div>
             <h4 className="font-semibold text-white leading-tight">{bounty.company}</h4>
             <p className="text-xs text-gray-500 font-medium">{bounty.category}</p>

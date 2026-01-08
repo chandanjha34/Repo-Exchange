@@ -1,21 +1,24 @@
 import { Router, Request, Response } from 'express';
-import { Access, Project } from '../models';
+import { Access, Project, Purchase } from '../models';
 import mongoose from 'mongoose';
+import { movementService } from '../services/movement';
 
 const router = Router();
 
 /**
  * GET /api/access/check
- * Check if wallet has access to a project
+ * Check if user has access to a project
+ * Checks Purchase table for access status
+ * Requirements: 14.1, 14.2
  */
 router.get('/check', async (req: Request, res: Response) => {
   try {
-    const { projectId, walletAddress } = req.query;
+    const { projectId, userId } = req.query;
 
-    if (!projectId || !walletAddress) {
+    if (!projectId || !userId) {
       return res.status(400).json({
         success: false,
-        error: 'projectId and walletAddress are required',
+        error: 'projectId and userId are required',
       });
     }
 
@@ -26,7 +29,12 @@ router.get('/check', async (req: Request, res: Response) => {
       });
     }
 
-    const normalizedWallet = (walletAddress as string).toLowerCase();
+    if (!mongoose.Types.ObjectId.isValid(userId as string)) {
+      return res.status(400).json({
+        success: false,
+        error: 'Invalid user ID',
+      });
+    }
 
     // Check if user is the owner (always has full access)
     const project = await Project.findById(projectId).lean();
@@ -38,31 +46,35 @@ router.get('/check', async (req: Request, res: Response) => {
       });
     }
 
-    if (project.ownerWalletAddress === normalizedWallet) {
+    // Check if user is owner (handle both ownerId and ownerWalletAddress for backward compatibility)
+    const isOwner = project.ownerId?.toString() === userId;
+
+    if (isOwner) {
       return res.json({
         success: true,
         data: {
-          hasViewAccess: true,
-          hasDownloadAccess: true,
+          hasDemo: true,
+          hasDownload: true,
           isOwner: true,
         },
       });
     }
 
-    // Check access records
-    const accessRecords = await Access.find({
+    // Check Purchase table for access
+    const purchases = await Purchase.find({
+      userId: new mongoose.Types.ObjectId(userId as string),
       projectId: new mongoose.Types.ObjectId(projectId as string),
-      walletAddress: normalizedWallet,
+      status: 'confirmed',
     }).lean();
 
-    const hasViewAccess = accessRecords.some(a => a.accessType === 'view' || a.accessType === 'download');
-    const hasDownloadAccess = accessRecords.some(a => a.accessType === 'download');
+    const hasDemo = purchases.some(p => p.accessType === 'demo' || p.accessType === 'download');
+    const hasDownload = purchases.some(p => p.accessType === 'download');
 
     return res.json({
       success: true,
       data: {
-        hasViewAccess,
-        hasDownloadAccess,
+        hasDemo,
+        hasDownload,
         isOwner: false,
       },
     });
@@ -78,10 +90,12 @@ router.get('/check', async (req: Request, res: Response) => {
 /**
  * POST /api/access/grant
  * Grant access to a project (for future payment integration)
+ * Now records on-chain tx hash
+ * Requirements: 5.2, 5.3
  */
 router.post('/grant', async (req: Request, res: Response) => {
   try {
-    const { projectId, walletAddress, accessType, txHash } = req.body;
+    const { projectId, walletAddress, accessType, txHash, grantTxHash, onChainVerified } = req.body;
 
     if (!projectId || !walletAddress || !accessType) {
       return res.status(400).json({
@@ -115,7 +129,22 @@ router.post('/grant', async (req: Request, res: Response) => {
       });
     }
 
-    // Create or update access record
+    // Create or update access record with on-chain tx hash
+    const updateData: any = {
+      grantedAt: new Date(),
+      onChainVerified: onChainVerified !== undefined ? onChainVerified : !!txHash,
+    };
+
+    // Add txHash if provided (payment transaction hash)
+    if (txHash) {
+      updateData.txHash = txHash;
+    }
+
+    // Add grantTxHash if provided (access grant transaction hash)
+    if (grantTxHash) {
+      updateData.grantTxHash = grantTxHash;
+    }
+
     const access = await Access.findOneAndUpdate(
       {
         projectId: new mongoose.Types.ObjectId(projectId),
@@ -123,11 +152,7 @@ router.post('/grant', async (req: Request, res: Response) => {
         accessType,
       },
       {
-        $set: {
-          grantedAt: new Date(),
-          txHash: txHash || undefined,
-          onChainVerified: !!txHash,
-        },
+        $set: updateData,
       },
       { upsert: true, new: true }
     );

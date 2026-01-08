@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Search, Filter, Plus } from "lucide-react";
 import BountyCard from "../components/bounties/BountyCard";
 import BountyModal from "../components/bounties/BountyModal";
@@ -6,6 +6,9 @@ import SubmitProjectModal from "../components/bounties/SubmitProjectModal";
 import LaunchCampaignModal from "../components/bounties/LaunchCampaignModal";
 import ManageCampaignModal from "../components/bounties/ManageCampaignModals";
 import { Header } from "@/components/layout";
+
+const MY_WALLET = "0x40a2387ea575b5e503d089e96bd69e49849cc121ed118970d8dd0b4f8954a947";
+
 
 export default function BountiesPage() {
   const [selectedBounty, setSelectedBounty] = useState(null);
@@ -16,176 +19,9 @@ export default function BountiesPage() {
 
   // Mock Data
 const initialBounties = [
-    {
-      id: 1,
-      company: "Orion Systems",
-      logo: "O",
-      color: "from-blue-500 to-cyan-500",
-      title: "Internal AI Knowledge Assistant",
-      reward: "3,500 USDC",
-      duration: "6 Weeks",
-      applicants: 92,
-      difficulty: "Senior",
-      category: "AI & Infrastructure",
-      tags: ["Python", "Vector DB", "LLM"],
-      overview: "Orion Systems needs a production-grade internal AI assistant.",
-      objective: "Build a polished, reliable internal tool. Not a prototype.",
-      expectations: ["Intuitive chat interface", "SSO Authentication"],
-      deliverables: ["Deployed Application", "Dockerized Containers"],
-      evaluation: ["UX Polish", "Code Quality"],
-      prize: "Winner takes 3,500 USDC.",
-      ownership: "Developer retains IP unless acquired.",
-      ownerId: "user-123" 
-    },
-    {
-      id: 2,
-      company: "Nebula Protocol",
-      logo: "N",
-      color: "from-purple-500 to-pink-500",
-      title: "DeFi Dashboard UI Redesign",
-      reward: "1,200 USDC",
-      duration: "2 Weeks",
-      applicants: 45,
-      difficulty: "Intermediate",
-      category: "Frontend & Design",
-      tags: ["React", "Tailwind"],
-      overview: "Redesign our staking interface.",
-      objective: "Create a visually stunning interface.",
-      expectations: ["Mobile-first"],
-      deliverables: ["Figma", "React Code"],
-      evaluation: ["Visual Impact"],
-      prize: "1,200 USDC",
-      ownership: "Full IP transfer.",
-      ownerId: "other-user"
-    },
-    {
-      id: 3,
-      company: "SentinelX",
-      logo: "S",
-      color: "from-emerald-500 to-green-500",
-      title: "Smart Contract Security Audit Tool",
-      reward: "5,000 USDC",
-      duration: "4 Weeks",
-      applicants: 12,
-      difficulty: "Expert",
-      category: "Security & Blockchain",
-      tags: ["Solidity", "Rust", "Security"],
-      overview: "Build a CLI tool that static analyzes Solidity contracts.",
-      objective: "Automate the first pass of our security auditing process.",
-      expectations: ["Zero false positives ideally"],
-      deliverables: ["CLI Tool Source Code", "Test Suite"],
-      evaluation: ["Detection Accuracy", "Performance"],
-      prize: "5,000 USDC",
-      ownership: "Open Source (MIT License).",
-      ownerId: "other-user"
-    },
-    {
-      id: 4,
-      company: "PixelForge",
-      logo: "P",
-      color: "from-orange-500 to-red-500",
-      title: "Generative Art Engine",
-      reward: "2,000 USDC",
-      duration: "3 Weeks",
-      applicants: 156,
-      difficulty: "Intermediate",
-      category: "Creative Tech",
-      tags: ["Canvas API", "WebGL", "Node.js"],
-      overview: "Create an engine that takes distinct PNG layers and generates 10,000 unique images.",
-      objective: "High-performance art generation for an upcoming NFT drop.",
-      expectations: ["Handle 4k resolution"],
-      deliverables: ["Generation Script", "Metadata verifier"],
-      evaluation: ["Speed", "Rarity logic accuracy"],
-      prize: "2,000 USDC + 1 Whitelist spot",
-      ownership: "Shared ownership.",
-      ownerId: "user-123"
-    },
-    {
-      id: 5,
-      company: "QuantumLeap",
-      logo: "Q",
-      color: "from-teal-500 to-emerald-500",
-      title: "Zero-Knowledge Proof Login System",
-      reward: "8,000 USDC",
-      duration: "8 Weeks",
-      applicants: 28,
-      difficulty: "Expert",
-      category: "Cryptography & Auth",
-      tags: ["Circom", "SnarkJS", "React"],
-      overview: "Develop a ZK-based login system that allows users to prove ownership of an NFT.",
-      objective: "Privacy-preserving authentication for our dApp suite.",
-      expectations: ["Client-side proof generation"],
-      deliverables: ["Circuit files", "Frontend SDK", "Verifier Contract"],
-      evaluation: ["Security", "Proof generation time"],
-      prize: "8,000 USDC + Audit credit",
-      ownership: "Exclusive license.",
-      ownerId: "other-user"
-    },
-    {
-      id: 6,
-      company: "EcoChain",
-      logo: "E",
-      color: "from-green-400 to-lime-500",
-      title: "Carbon Credit Marketplace Indexer",
-      reward: "2,500 USDC",
-      duration: "3 Weeks",
-      applicants: 55,
-      difficulty: "Intermediate",
-      category: "Backend & Data",
-      tags: ["The Graph", "GraphQL", "PostgreSQL"],
-      overview: "Build a subgraph or custom indexer to track carbon credit retirements.",
-      objective: "Unified API for carbon data.",
-      expectations: ["Real-time syncing", "Handle reorgs"],
-      deliverables: ["Indexer code", "Hosted API endpoint"],
-      evaluation: ["Data accuracy", "Uptime"],
-      prize: "2,500 USDC",
-      ownership: "Open Source.",
-      ownerId: "user-123"
-    },
-     {
-      id: 7,
-      company: "MetaRealms",
-      logo: "M",
-      color: "from-pink-500 to-rose-500",
-      title: "3D Asset Viewer for Web",
-      reward: "1,800 USDC",
-      duration: "2 Weeks",
-      applicants: 34,
-      difficulty: "Intermediate",
-      category: "Frontend & 3D",
-      tags: ["Three.js", "React Three Fiber"],
-      overview: "A lightweight, drag-and-drop 3D viewer component for GLB/GLTF files.",
-      objective: "Enhance our marketplace asset preview.",
-      expectations: ["<200kb bundle size", "Mobile touch support"],
-      deliverables: ["React Component", "NPM Package"],
-      evaluation: ["Performance", "Visual fidelity"],
-      prize: "1,800 USDC",
-      ownership: "MIT License.",
-      ownerId: "other-user"
-    },
-     {
-      id: 8,
-      company: "DataVault",
-      logo: "D",
-      color: "from-slate-500 to-gray-500",
-      title: "Encrypted File Sharing Protocol",
-      reward: "4,000 USDC",
-      duration: "5 Weeks",
-      applicants: 19,
-      difficulty: "Senior",
-      category: "Security & Storage",
-      tags: ["IPFS", "PGP", "WebCrypto API"],
-      overview: "Create a decentralized 'WeTransfer' where files are encrypted client-side.",
-      objective: "Secure, ephemeral file sharing.",
-      expectations: ["End-to-end encryption", "No backend logging"],
-      deliverables: ["Web App", "Security Whitepaper"],
-      evaluation: ["Penetration testing results"],
-      prize: "4,000 USDC",
-      ownership: "Shared IP.",
-      ownerId: "other-user"
-    }
-  ];
   
+  ];
+  const walletAddress = "0x1234...abcd"; // Replace with actual wallet logic
   
   const [bounties, setBounties] = useState(initialBounties);
 
@@ -205,9 +41,65 @@ const initialBounties = [
     setViewMode("my-campaigns"); // Switch to my campaigns view
   };
 
-  const filteredBounties = viewMode === "explore" 
-    ? bounties 
-    : bounties.filter(b => b.ownerId === "user-123");
+  useEffect(() => {
+    const loadCampaigns = async () => {
+      try {
+        const res = await fetch("http://localhost:3001/api/bounty");
+      
+        if (!res.ok) {
+          throw new Error("Failed to fetch bounties");
+        }
+      
+        const json = await res.json();
+      
+        if (!json?.data) return;
+      
+        // Map backend → UI format
+const mapped = json.data.map((b) => ({
+  id: b._id,
+  company: b.company,
+  logo: b.logo,
+  title: b.title,
+  reward: b.reward,
+  duration: `${b.duration} Weeks`,
+  applicants: 0,
+  difficulty: b.difficulty,
+  category: b.category,
+  tags: b.tags,
+  overview: b.overview,
+  objective: b.objectives,
+  expectations: [b.expectations],
+  deliverables: [b.deliverables],
+  evaluation: b.evaluation,
+  prize: b.reward,
+  ownership: "N/A",
+  ownerWallet: b.walletAddress?.toLowerCase(),
+  color: "from-indigo-500 to-purple-500",
+}));
+
+      
+        setBounties(mapped);
+      
+      } catch (err) {
+        console.error(err);
+      
+        // fallback to demo data if needed
+        setBounties(initialBounties);
+      }
+    };
+  
+    loadCampaigns();
+  }, []);
+
+
+  const filteredBounties =
+  viewMode === "explore"
+    ? bounties
+    : bounties.filter(
+        (b) =>
+          b.ownerWallet === MY_WALLET.toLowerCase()
+      );
+
 
   return (
     <div className="min-h-screen bg-[#0a0a0f] text-gray-100 font-sans selection:bg-indigo-500/30">
@@ -289,7 +181,7 @@ const initialBounties = [
               ))
           ) : (
              <div className="col-span-2 text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
-                <p className="text-gray-400 text-lg">No campaigns found.</p>
+                <p className="text-gray-400 text-lg">No Campaigns found.</p>
                 {viewMode === "my-campaigns" && (
                     <button onClick={() => setShowLaunch(true)} className="mt-4 text-indigo-400 font-medium hover:underline">
                         Launch your first campaign &rarr;
@@ -309,7 +201,7 @@ const initialBounties = [
         )}
 
         {showSubmit && (
-          <SubmitProjectModal onClose={() => setShowSubmit(false)} />
+          <SubmitProjectModal bountyId={selectedBounty._id} wallet={MY_WALLET} onClose={() => setShowSubmit(false)} />
         )}
 
         {showLaunch && (
