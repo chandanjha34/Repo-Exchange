@@ -1,15 +1,26 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Layout } from "@/components/layout";
 import { projectApi } from "@/lib/api";
 import { useUser } from "@/contexts/UserContext";
 import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import {
   X,
   Plus,
   Image,
   Link as LinkIcon,
   FileArchive,
+  CheckCircle2,
+  ExternalLink,
+  LayoutDashboard,
 } from "lucide-react";
 
 const categories = [
@@ -31,6 +42,8 @@ const AddRepository = () => {
   const { toast } = useToast();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const [createdProject, setCreatedProject] = useState<{ slug: string; title: string } | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     shortDescription: "",
@@ -178,6 +191,22 @@ const AddRepository = () => {
       }
     }
 
+    // Convert ZIP file to base64 if present
+    let zipFileBase64: string | undefined;
+    if (zipFile) {
+      try {
+        zipFileBase64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.onerror = reject;
+          reader.readAsDataURL(zipFile);
+        });
+        console.log('[AddRepository] ZIP file converted to base64');
+      } catch (err) {
+        console.error('[AddRepository] Failed to convert ZIP file:', err);
+      }
+    }
+
     const projectData = {
       title: formData.name,
       slug,
@@ -190,6 +219,7 @@ const AddRepository = () => {
       category: formData.category || 'Other',
       demoUrl: formData.demoUrl || undefined,
       previewImage: thumbnailBase64,
+      zipFileData: zipFileBase64, // Include ZIP file data
       demoPrice: demoPriceNum,
       downloadPrice: downloadPriceNum,
       isPublished: true,
@@ -204,11 +234,12 @@ const AddRepository = () => {
 
       if (response.success) {
         console.log('[AddRepository] Project created successfully:', response.data);
-        toast({
-          title: 'Success!',
-          description: 'Your project has been created successfully.',
+        // Show success modal instead of navigating immediately
+        setCreatedProject({
+          slug: response.data.slug,
+          title: response.data.title,
         });
-        navigate("/dashboard");
+        setShowSuccessModal(true);
       } else {
         console.error('[AddRepository] API returned error:', response.error);
 
@@ -698,6 +729,46 @@ const AddRepository = () => {
           </form>
         </div>
       </div>
+
+      {/* Success Modal */}
+      <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
+        <DialogContent className="sm:max-w-md bg-neutral-900 border-emerald-500/20 text-white">
+          <DialogHeader className="text-center">
+            <div className="mx-auto w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mb-4">
+              <CheckCircle2 className="w-10 h-10 text-emerald-400" />
+            </div>
+            <DialogTitle className="text-2xl font-heading text-center">
+              🎉 Project Published!
+            </DialogTitle>
+            <DialogDescription className="text-gray-400 text-center">
+              Your project <span className="text-white font-medium">"{createdProject?.title}"</span> is now live and visible to the community.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3 pt-4">
+            <Link to={`/repositories/${createdProject?.slug}`} className="block">
+              <Button
+                className="w-full bg-gradient-to-r from-emerald-500 to-emerald-400 text-black font-semibold hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] rounded-full"
+                onClick={() => setShowSuccessModal(false)}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                View Your Project
+              </Button>
+            </Link>
+
+            <Link to="/dashboard" className="block">
+              <Button
+                variant="outline"
+                className="w-full border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/10 rounded-full"
+                onClick={() => setShowSuccessModal(false)}
+              >
+                <LayoutDashboard className="w-4 h-4 mr-2" />
+                Go to Dashboard
+              </Button>
+            </Link>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

@@ -29,6 +29,7 @@ router.post('/', async (req: Request, res: Response) => {
       images,
       previewImage,
       zipFileUrl,
+      zipFileData, // Base64 encoded ZIP file for demo
       demoUrl,
       isPublished,
       isFeatured,
@@ -143,7 +144,7 @@ router.post('/', async (req: Request, res: Response) => {
       category: category || 'Other',
       images: images || [],
       previewImage,
-      zipFileUrl,
+      zipFileUrl: zipFileUrl || zipFileData, // Use base64 data if no URL provided
       demoUrl,
       isPublished: isPublished || false,
       isFeatured: isFeatured || false,
@@ -168,10 +169,18 @@ router.post('/', async (req: Request, res: Response) => {
   } catch (error) {
     console.error('[Projects] Create error:', error);
     console.error('[Projects] Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+
+    // Return more detailed error info to help debug
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const validationError = (error as any)?.errors
+      ? Object.keys((error as any).errors).map(key => `${key}: ${(error as any).errors[key].message}`).join(', ')
+      : null;
+
     return res.status(500).json({
       success: false,
-      error: 'Failed to create project',
-      details: error instanceof Error ? error.message : 'Unknown error',
+      error: validationError || errorMessage || 'Failed to create project',
+      details: errorMessage,
+      validationErrors: (error as any)?.errors ? Object.keys((error as any).errors) : undefined,
     });
   }
 });

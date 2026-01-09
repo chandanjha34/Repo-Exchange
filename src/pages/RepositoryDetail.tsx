@@ -88,7 +88,7 @@ const RepositoryDetail = () => {
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 1) return "1 day ago";
     if (diffDays < 7) return `${diffDays} days ago`;
     if (diffDays < 30) return `${Math.floor(diffDays / 7)} weeks ago`;
@@ -186,7 +186,7 @@ const RepositoryDetail = () => {
 
             {/* Description */}
             {hasViewAccess ? (
-              <div className="relative bg-neutral-950/80 backdrop-blur-xl border border-emerald-500/20 rounded-2xl p-6 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
+              <div id="project-description" className="relative bg-neutral-950/80 backdrop-blur-xl border border-emerald-500/20 rounded-2xl p-6 shadow-[0_0_30px_rgba(16,185,129,0.1)]">
                 <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent rounded-2xl pointer-events-none" />
                 <div className="relative">
                   <h2 className="font-heading text-xl font-semibold text-white mb-4">
@@ -271,12 +271,40 @@ const RepositoryDetail = () => {
                       </p>
                     </div>
                   </div>
-                  
+
                   {hasViewAccess ? (
-                    <div className="flex items-center gap-2 text-sm text-emerald-400">
-                      <Check className="w-4 h-4" />
-                      <span>You have access</span>
-                    </div>
+                    <>
+                      <div className="flex items-center gap-2 text-sm text-emerald-400 mb-2">
+                        <Check className="w-4 h-4" />
+                        <span>You have access</span>
+                      </div>
+                      {project.demoUrl ? (
+                        <a
+                          href={project.demoUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full"
+                        >
+                          <Button
+                            className="w-full bg-neutral-800 text-white hover:bg-neutral-700 border border-emerald-500/20 rounded-full"
+                          >
+                            <Eye className="w-4 h-4" />
+                            View Live Demo
+                          </Button>
+                        </a>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            // Scroll to project description section
+                            document.querySelector('#project-description')?.scrollIntoView({ behavior: 'smooth' });
+                          }}
+                          className="w-full bg-neutral-800 text-white hover:bg-neutral-700 border border-emerald-500/20 rounded-full"
+                        >
+                          <Eye className="w-4 h-4" />
+                          View Details
+                        </Button>
+                      )}
+                    </>
                   ) : (
                     <Button
                       onClick={() => handlePurchaseClick('demo')}
@@ -306,22 +334,39 @@ const RepositoryDetail = () => {
                       </p>
                     </div>
                   </div>
-                  
+
                   {hasDownloadAccess ? (
                     <>
                       <div className="flex items-center gap-2 text-sm text-emerald-400 mb-2">
                         <Check className="w-4 h-4" />
                         <span>You have access</span>
                       </div>
-                      <Button
-                        onClick={() => {
-                          console.log('Download project');
-                        }}
-                        className="w-full bg-neutral-800 text-white hover:bg-neutral-700 border border-emerald-500/20 rounded-full"
-                      >
-                        <Download className="w-4 h-4" />
-                        Download Project
-                      </Button>
+                      {project.zipFileUrl ? (
+                        <a
+                          href={project.zipFileUrl}
+                          download
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="w-full"
+                        >
+                          <Button
+                            className="w-full bg-gradient-to-r from-emerald-500 to-emerald-400 text-black hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] rounded-full font-semibold"
+                          >
+                            <Download className="w-4 h-4" />
+                            Download Project
+                          </Button>
+                        </a>
+                      ) : (
+                        <Button
+                          onClick={() => {
+                            alert('Download file not available for this project. Please contact the project owner.');
+                          }}
+                          className="w-full bg-neutral-800 text-white hover:bg-neutral-700 border border-emerald-500/20 rounded-full"
+                        >
+                          <Download className="w-4 h-4" />
+                          Download Project
+                        </Button>
+                      )}
                     </>
                   ) : (
                     <Button

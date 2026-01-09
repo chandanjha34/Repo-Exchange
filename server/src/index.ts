@@ -41,7 +41,8 @@ app.use(
 // ✅ Use regex instead of "*" to fix "path-to-regexp" error
 app.options(/.*/, cors());
 
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 // Health check
 app.get('/health', (req, res) => {
@@ -83,15 +84,15 @@ async function start() {
   try {
     // Connect to MongoDB
     await connectDB();
-    
+
     // Connect to Movement blockchain
     const rpcUrl = process.env.MOVEMENT_RPC_URL || 'https://testnet.movementnetwork.xyz/v1';
     const chainId = parseInt(process.env.MOVEMENT_CHAIN_ID || '250', 10);
-    
+
     console.log('[Movement] Connecting to Movement network...');
     await movementService.connect(rpcUrl, chainId);
     console.log('[Movement] Connected to Movement network');
-    
+
     // Start Express server
     app.listen(PORT, () => {
       console.log(`[Server] Running on http://localhost:${PORT}`);
