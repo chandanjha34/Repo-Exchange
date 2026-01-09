@@ -23,4 +23,12 @@ export default defineConfig(({ mode }) => ({
       external: [],
     },
   },
+  optimizeDeps: {
+    include: [
+      "@aptos-labs/ts-sdk",
+      "@aptos-labs/wallet-adapter-core",
+      "@aptos-labs/wallet-adapter-react",
+      "@aptos-labs/wallet-adapter-react-ui"
+    ],
+  },
 }));
