@@ -1,6 +1,6 @@
 // LaunchCampaignModal.tsx
 import React, { useEffect, useState } from "react";
-import { X } from "lucide-react";
+import { X, CheckCircle2, ExternalLink, Calendar, Award } from "lucide-react";
 import Input from "./Input";
 import TextArea from "./TextArea";
 import { useBountyContract } from "@/hooks/useBountyContract";
@@ -8,18 +8,30 @@ import useMovementWallet from "@/hooks/useMovementWallet";
 
 export default function LaunchCampaignModal({ onClose, onCreate }) {
   const [loading, setLoading] = useState(false);
+  const [showSuccess, setShowSuccess] = useState(false);
+  const [createdBounty, setCreatedBounty] = useState<any>(null);
 
-  const { account } = useMovementWallet();
+  const { account, signAndSubmitTransaction, connected } = useMovementWallet();
   const { createCampaign } = useBountyContract();
 
   const walletAddress = account?.address?.toString() ?? "";
+
+  // Calculate default deadline (2 weeks from now)
+  const getDefaultDeadline = () => {
+    const date = new Date();
+    date.setDate(date.getDate() + 14);
+    return date.toISOString().slice(0, 16); // Format: YYYY-MM-DDTHH:mm
+  };
+
+  // Get user ID from localStorage
+  const storedUserId = typeof window !== 'undefined' ? localStorage.getItem('layR_userId') : null;
 
   const [form, setForm] = useState({
     company: "",
     logo: "",
     title: "",
     reward: "",
-    duration: 0,
+    deadline: getDefaultDeadline(),
     category: "",
     difficulty: "Beginner",
     tags: [],
@@ -29,7 +41,7 @@ export default function LaunchCampaignModal({ onClose, onCreate }) {
     deliverables: "",
     evaluation: [],
     faq: [],
-    privyId: "Chand345",
+    privyId: storedUserId || `bounty-${Date.now()}`, // Use actual user ID
     walletAddress: walletAddress,
     email: "",
   });
@@ -64,31 +76,70 @@ export default function LaunchCampaignModal({ onClose, onCreate }) {
 
   const handleSubmit = async () => {
     try {
-      if (!account) {
+      if (!walletAddress) {
         alert("Please connect your wallet");
+        return;
+      }
+
+      // Validate required fields
+      if (!form.company || !form.title || !form.reward || !form.category ||
+        !form.overview || !form.objectives || !form.expectations || !form.deliverables) {
+        alert("Please fill in all required fields");
         return;
       }
 
       setLoading(true);
 
-      // ---------- ON-CHAIN ----------
-      const durationSeconds = Number(form.duration) * 7 * 24 * 60 * 60;
+      let txHash = null;
 
-      const txHash = await createCampaign(
-        { signAndSubmitTransaction: account.signAndSubmitTransaction },
-        form.title,
-        form.overview,
-        parseFloat(form.reward),
-        durationSeconds
-      );
+      // ---------- ON-CHAIN TOKEN LOCKING (REQUIRED) ----------
+      // Tokens MUST be locked on-chain before saving to database
+      if (!connected || !signAndSubmitTransaction) {
+        alert("Please connect your wallet to lock MOVE tokens for this bounty");
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const deadlineDate = new Date(form.deadline);
+        const durationSeconds = Math.floor((deadlineDate.getTime() - Date.now()) / 1000);
+
+        console.log("[LaunchCampaign] Starting on-chain transaction...");
+        console.log("[LaunchCampaign] Connected:", connected);
+        console.log("[LaunchCampaign] signAndSubmitTransaction exists:", !!signAndSubmitTransaction);
+        console.log("[LaunchCampaign] signAndSubmitTransaction type:", typeof signAndSubmitTransaction);
+        console.log("[LaunchCampaign] Form data:", {
+          title: form.title,
+          overview: form.overview,
+          reward: form.reward,
+          durationSeconds,
+        });
+
+        // Call the contract - wallet popup should appear here
+        txHash = await createCampaign(
+          signAndSubmitTransaction,
+          form.title,
+          form.overview,
+          parseFloat(form.reward) || 0,
+          durationSeconds > 0 ? durationSeconds : 86400
+        );
+        console.log("[LaunchCampaign] On-chain campaign created, tokens locked:", txHash);
+      } catch (chainErr: any) {
+        console.error("On-chain creation failed:", chainErr);
+        const errorMsg = chainErr?.message || "Transaction failed or was rejected";
+        alert(`Failed to lock tokens: ${errorMsg}\n\nPlease ensure you have enough MOVE tokens and try again.`);
+        setLoading(false);
+        return; // STOP - don't save to DB if on-chain fails
+      }
 
       // ---------- BACKEND ----------
       const payload = {
         ...form,
-        duration: Number(form.duration),
+        duration: 0, // Legacy field
+        deadline: form.deadline,
         reward: String(form.reward),
         walletAddress: walletAddress.toLowerCase(),
-        blockchainTxHash: txHash,
+        blockchainTxHash: txHash || undefined,
         onChainCreator: walletAddress,
       };
 
@@ -101,15 +152,59 @@ export default function LaunchCampaignModal({ onClose, onCreate }) {
       const data = await res.json();
       if (!res.ok) throw data;
 
+      // Show success modal
+      setCreatedBounty(data.data);
+      setShowSuccess(true);
+
       onCreate?.(data);
-      onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert(err?.error || "Failed to create campaign");
+      alert(err?.error || err?.message || "Failed to create campaign");
     } finally {
       setLoading(false);
     }
   };
+
+  // Success Modal
+  if (showSuccess) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          onClick={onClose}
+        />
+        <div className="relative bg-gradient-to-br from-[#0A0F0D] to-[#050A08] border border-emerald-500/30 rounded-2xl w-full max-w-md p-8 text-center">
+          <div className="w-20 h-20 mx-auto rounded-full bg-emerald-500/20 flex items-center justify-center mb-6 animate-pulse">
+            <CheckCircle2 className="w-12 h-12 text-emerald-400" />
+          </div>
+
+          <h2 className="text-2xl font-bold text-white mb-2">
+            🎉 Campaign Launched!
+          </h2>
+          <p className="text-gray-400 mb-6">
+            Your bounty <span className="text-emerald-400 font-medium">"{createdBounty?.title}"</span> is now live and accepting submissions.
+          </p>
+
+          <div className="bg-white/5 rounded-xl p-4 mb-6 border border-white/10">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-gray-400">Reward</span>
+              <span className="text-emerald-400 font-semibold">{createdBounty?.reward} MOVE</span>
+            </div>
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={onClose}
+              className="flex-1 px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-400 text-black font-semibold rounded-xl hover:shadow-[0_0_20px_rgba(16,185,129,0.4)] transition-all flex items-center justify-center gap-2"
+            >
+              <Award className="w-4 h-4" />
+              View Bounties
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -121,7 +216,8 @@ export default function LaunchCampaignModal({ onClose, onCreate }) {
       <div className="relative bg-gradient-to-br from-[#0A0F0D] to-[#050A08] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col overflow-hidden">
         {/* HEADER */}
         <div className="p-6 border-b border-white/10 flex justify-between bg-white/5">
-          <h2 className="text-xl font-bold text-white">
+          <h2 className="text-xl font-bold text-white flex items-center gap-2">
+            <Award className="w-5 h-5 text-emerald-400" />
             Launch New Campaign
           </h2>
           <button onClick={onClose}>
@@ -131,33 +227,51 @@ export default function LaunchCampaignModal({ onClose, onCreate }) {
 
         {/* BODY */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6">
-          <Input label="Company" value={form.company} onChange={(v) => update("company", v)} placeholder={undefined} />
-          <Input label="Logo URL" value={form.logo} onChange={(v) => update("logo", v)} placeholder={undefined} />
-          <Input label="Title" value={form.title} onChange={(v) => update("title", v)} placeholder={undefined} />
+          <Input label="Company *" value={form.company} onChange={(v) => update("company", v)} placeholder="Your company name" />
+          <Input label="Logo URL" value={form.logo} onChange={(v) => update("logo", v)} placeholder="https://..." />
+          <Input label="Campaign Title *" value={form.title} onChange={(v) => update("title", v)} placeholder="Build a DeFi Dashboard" />
 
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Reward (MOVE)" value={form.reward} onChange={(v) => update("reward", v)} placeholder={undefined} />
-            <Input label="Duration (weeks)" value={form.duration} onChange={(v) => update("duration", v)} placeholder={undefined} />
+            <Input label="Reward (MOVE) *" value={form.reward} onChange={(v) => update("reward", v)} placeholder="100" />
+
+            {/* Deadline Date Picker */}
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400 flex items-center gap-2">
+                <Calendar className="w-4 h-4" />
+                Deadline *
+              </label>
+              <input
+                type="datetime-local"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all cursor-pointer"
+                style={{ colorScheme: 'dark' }}
+                value={form.deadline}
+                onChange={(e) => update("deadline", e.target.value)}
+                min={new Date().toISOString().slice(0, 16)}
+              />
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Category" value={form.category} onChange={(v) => update("category", v)} placeholder={undefined} />
-            <select
-              className="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
-              value={form.difficulty}
-              onChange={(e) => update("difficulty", e.target.value)}
-            >
-              <option>Beginner</option>
-              <option>Intermediate</option>
-              <option>Senior</option>
-              <option>Expert</option>
-            </select>
+            <Input label="Category *" value={form.category} onChange={(v) => update("category", v)} placeholder="DeFi, NFT, Gaming..." />
+            <div className="space-y-2">
+              <label className="text-sm text-gray-400">Difficulty *</label>
+              <select
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all"
+                value={form.difficulty}
+                onChange={(e) => update("difficulty", e.target.value)}
+              >
+                <option value="Beginner">Beginner</option>
+                <option value="Intermediate">Intermediate</option>
+                <option value="Senior">Senior</option>
+                <option value="Expert">Expert</option>
+              </select>
+            </div>
           </div>
 
-          <TextArea label="Overview" value={form.overview} onChange={(v) => update("overview", v)} placeholder={undefined} />
-          <TextArea label="Objectives" value={form.objectives} onChange={(v) => update("objectives", v)} placeholder={undefined} />
-          <TextArea label="Expectations" value={form.expectations} onChange={(v) => update("expectations", v)} placeholder={undefined} />
-          <TextArea label="Deliverables" value={form.deliverables} onChange={(v) => update("deliverables", v)} placeholder={undefined} />
+          <TextArea label="Overview *" value={form.overview} onChange={(v) => update("overview", v)} placeholder="Describe what this bounty is about..." />
+          <TextArea label="Objectives *" value={form.objectives} onChange={(v) => update("objectives", v)} placeholder="What should participants achieve?" />
+          <TextArea label="Expectations *" value={form.expectations} onChange={(v) => update("expectations", v)} placeholder="What are the requirements?" />
+          <TextArea label="Deliverables *" value={form.deliverables} onChange={(v) => update("deliverables", v)} placeholder="What should be submitted?" />
 
           {["tags", "evaluation", "faq"].map((section) => (
             <div key={section}>
@@ -183,18 +297,17 @@ export default function LaunchCampaignModal({ onClose, onCreate }) {
             </div>
           ))}
 
-          <Input label="Email" value={form.email} onChange={(v) => update("email", v)} placeholder={undefined} />
+          <Input label="Contact Email" value={form.email} onChange={(v) => update("email", v)} placeholder="your@email.com" />
         </div>
 
         {/* FOOTER */}
         <div className="p-6 border-t border-white/10 bg-white/5 flex justify-end gap-3">
           <button onClick={onClose} className="px-6 py-2.5 border border-white/10 bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition-colors rounded-xl">Cancel</button>
-          <button onClick={handleSubmit} disabled={loading} className="px-6 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-60">
-            {loading ? "Launching..." : "Launch Campaign"}
+          <button onClick={handleSubmit} disabled={loading} className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-emerald-400 text-black font-semibold rounded-xl shadow-lg shadow-emerald-500/20 transition-all disabled:opacity-60 hover:shadow-[0_0_20px_rgba(16,185,129,0.4)]">
+            {loading ? "Launching..." : "🚀 Launch Campaign"}
           </button>
         </div>
       </div>
     </div>
   );
 }
-

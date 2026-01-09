@@ -20,26 +20,48 @@ export default function BountiesPage() {
   // Get address as string
   const address = account?.address?.toString() ?? null;
   // Mock Data
-const initialBounties = [
-  
+  const initialBounties = [
+
   ];
   const walletAddress = "0x1234...abcd"; // Replace with actual wallet logic
-  
+
   const [bounties, setBounties] = useState(initialBounties);
 
-  const handleCreateCampaign = (newCampaign) => {
-    const newId = bounties.length + 1;
-    const campaignObj = {
-        id: newId,
-        company: "My Company", // Default for demo
-        logo: "M",
-        color: "from-emerald-500 to-emerald-600",
-        ...newCampaign,
-        applicants: 0,
-        tags: ["New"],
-        ownerId: "user-123" // Current user ID
-    };
-    setBounties([campaignObj, ...bounties]);
+  const handleCreateCampaign = async () => {
+    // Refetch bounties from API after creation
+    try {
+      const res = await fetch("http://localhost:3001/api/bounty");
+      if (res.ok) {
+        const json = await res.json();
+        if (json?.data) {
+          const mapped = json.data.map((b) => ({
+            id: b._id,
+            company: b.company,
+            logo: b.logo,
+            title: b.title,
+            reward: b.reward,
+            duration: `${b.duration} Weeks`,
+            deadline: b.deadline,
+            applicants: 0,
+            difficulty: b.difficulty,
+            category: b.category,
+            tags: b.tags,
+            overview: b.overview,
+            objective: b.objectives,
+            expectations: [b.expectations],
+            deliverables: [b.deliverables],
+            evaluation: b.evaluation,
+            prize: b.reward,
+            ownership: "N/A",
+            ownerWallet: b.walletAddress?.toLowerCase(),
+            color: "from-emerald-500 to-emerald-600",
+          }));
+          setBounties(mapped);
+        }
+      }
+    } catch (err) {
+      console.error("Error refreshing bounties:", err);
+    }
     setViewMode("my-campaigns"); // Switch to my campaigns view
   };
 
@@ -47,57 +69,57 @@ const initialBounties = [
     const loadCampaigns = async () => {
       try {
         const res = await fetch("http://localhost:3001/api/bounty");
-      
+
         if (!res.ok) {
           throw new Error("Failed to fetch bounties");
         }
-      
-        const json = await res.json();
-      
-        if (!json?.data) return;
-      
-        // Map backend → UI format
-const mapped = json.data.map((b) => ({
-  id: b._id,
-  company: b.company,
-  logo: b.logo,
-  title: b.title,
-  reward: b.reward,
-  duration: `${b.duration} Weeks`,
-  applicants: 0,
-  difficulty: b.difficulty,
-  category: b.category,
-  tags: b.tags,
-  overview: b.overview,
-  objective: b.objectives,
-  expectations: [b.expectations],
-  deliverables: [b.deliverables],
-  evaluation: b.evaluation,
-  prize: b.reward,
-  ownership: "N/A",
-  ownerWallet: b.walletAddress?.toLowerCase(),
-  color: "from-emerald-500 to-emerald-600",
-}));
 
-      
+        const json = await res.json();
+
+        if (!json?.data) return;
+
+        // Map backend → UI format
+        const mapped = json.data.map((b) => ({
+          id: b._id,
+          company: b.company,
+          logo: b.logo,
+          title: b.title,
+          reward: b.reward,
+          duration: `${b.duration} Weeks`,
+          applicants: 0,
+          difficulty: b.difficulty,
+          category: b.category,
+          tags: b.tags,
+          overview: b.overview,
+          objective: b.objectives,
+          expectations: [b.expectations],
+          deliverables: [b.deliverables],
+          evaluation: b.evaluation,
+          prize: b.reward,
+          ownership: "N/A",
+          ownerWallet: b.walletAddress?.toLowerCase(),
+          color: "from-emerald-500 to-emerald-600",
+        }));
+
+
         setBounties(mapped);
-      
+
       } catch (err) {
         console.error(err);
-      
+
         // fallback to demo data if needed
         setBounties(initialBounties);
       }
     };
-  
+
     loadCampaigns();
   }, []);
 
 
   const filteredBounties =
-  viewMode === "explore"
-    ? bounties
-    : bounties.filter(
+    viewMode === "explore"
+      ? bounties
+      : bounties.filter(
         (b) =>
           b.ownerWallet === address?.toLowerCase()
       );
@@ -105,7 +127,7 @@ const mapped = json.data.map((b) => ({
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0A0F0D] via-[#050A08] to-black text-gray-100 font-sans selection:bg-emerald-500/30">
-        <Header />
+      <Header />
       {/* Background Gradients */}
       <div className="fixed top-0 left-0 w-full h-full overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] rounded-full bg-emerald-900/20 blur-[120px]" />
@@ -121,45 +143,45 @@ const mapped = json.data.map((b) => ({
                 {viewMode === "explore" ? "Explore Bounties" : "My Campaigns"}
               </h1>
               <p className="text-gray-400 mt-4 max-w-2xl text-lg leading-relaxed">
-                {viewMode === "explore" 
-                    ? "Contribute to world-class engineering challenges. Ship real products, get paid in crypto."
-                    : "Manage your active campaigns, review submissions, and find your next star engineer."}
+                {viewMode === "explore"
+                  ? "Contribute to world-class engineering challenges. Ship real products, get paid in crypto."
+                  : "Manage your active campaigns, review submissions, and find your next star engineer."}
               </p>
             </div>
-            
+
             <div className="flex gap-4">
-                <button 
-                    onClick={() => setShowLaunch(true)}
-                    className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
-                >
-                    <Plus className="w-5 h-5" /> Launch Campaign
-                </button>
+              <button
+                onClick={() => setShowLaunch(true)}
+                className="px-6 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-semibold shadow-lg shadow-emerald-500/20 transition-all flex items-center gap-2"
+              >
+                <Plus className="w-5 h-5" /> Launch Campaign
+              </button>
             </div>
           </div>
 
           {/* Navigation Tabs */}
           <div className="mt-10 border-b border-white/10 flex gap-8">
-              <button 
-                onClick={() => setViewMode("explore")}
-                className={`pb-4 px-2 font-medium text-sm transition-all border-b-2 ${viewMode === "explore" ? "border-emerald-500 text-white" : "border-transparent text-gray-400 hover:text-white"}`}
-              >
-                Explore All
-              </button>
-              <button 
-                onClick={() => setViewMode("my-campaigns")}
-                className={`pb-4 px-2 font-medium text-sm transition-all border-b-2 ${viewMode === "my-campaigns" ? "border-emerald-500 text-white" : "border-transparent text-gray-400 hover:text-white"}`}
-              >
-                My Campaigns
-              </button>
+            <button
+              onClick={() => setViewMode("explore")}
+              className={`pb-4 px-2 font-medium text-sm transition-all border-b-2 ${viewMode === "explore" ? "border-emerald-500 text-white" : "border-transparent text-gray-400 hover:text-white"}`}
+            >
+              Explore All
+            </button>
+            <button
+              onClick={() => setViewMode("my-campaigns")}
+              className={`pb-4 px-2 font-medium text-sm transition-all border-b-2 ${viewMode === "my-campaigns" ? "border-emerald-500 text-white" : "border-transparent text-gray-400 hover:text-white"}`}
+            >
+              My Campaigns
+            </button>
           </div>
 
           {/* Search Bar */}
           <div className="mt-8 flex gap-4">
             <div className="relative flex-1">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500 w-5 h-5" />
-              <input 
-                type="text" 
-                placeholder="Search bounties..." 
+              <input
+                type="text"
+                placeholder="Search bounties..."
                 className="w-full bg-white/5 border border-white/10 rounded-xl py-4 pl-12 pr-4 text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all hover:bg-white/10"
               />
             </div>
@@ -172,24 +194,24 @@ const mapped = json.data.map((b) => ({
         {/* Grid Layout */}
         <div className="grid md:grid-cols-2 lg:grid-cols-2 gap-6">
           {filteredBounties.length > 0 ? (
-              filteredBounties.map((bounty) => (
-                <BountyCard
-                  key={bounty.id}
-                  bounty={bounty}
-                  isOwner={viewMode === "my-campaigns"} // Pass owner flag
-                  onOpen={() => setSelectedBounty(bounty)}
-                  onManage={() => setManagedBounty(bounty)} // Open management modal
-                />
-              ))
+            filteredBounties.map((bounty) => (
+              <BountyCard
+                key={bounty.id}
+                bounty={bounty}
+                isOwner={viewMode === "my-campaigns"} // Pass owner flag
+                onOpen={() => setSelectedBounty(bounty)}
+                onManage={() => setManagedBounty(bounty)} // Open management modal
+              />
+            ))
           ) : (
-             <div className="col-span-2 text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
-                <p className="text-gray-400 text-lg">No Campaigns found.</p>
-                {viewMode === "my-campaigns" && (
-                    <button onClick={() => setShowLaunch(true)} className="mt-4 text-emerald-400 font-medium hover:underline">
-                        Launch your first campaign &rarr;
-                    </button>
-                )}
-             </div>
+            <div className="col-span-2 text-center py-20 bg-white/5 rounded-2xl border border-dashed border-white/10">
+              <p className="text-gray-400 text-lg">No Campaigns found.</p>
+              {viewMode === "my-campaigns" && (
+                <button onClick={() => setShowLaunch(true)} className="mt-4 text-emerald-400 font-medium hover:underline">
+                  Launch your first campaign &rarr;
+                </button>
+              )}
+            </div>
           )}
         </div>
 
@@ -207,17 +229,17 @@ const mapped = json.data.map((b) => ({
         )}
 
         {showLaunch && (
-          <LaunchCampaignModal 
-            onClose={() => setShowLaunch(false)} 
+          <LaunchCampaignModal
+            onClose={() => setShowLaunch(false)}
             onCreate={handleCreateCampaign}
           />
         )}
 
         {managedBounty && (
-            <ManageCampaignModal 
-                bounty={managedBounty}
-                onClose={() => setManagedBounty(null)}
-            />
+          <ManageCampaignModal
+            bounty={managedBounty}
+            onClose={() => setManagedBounty(null)}
+          />
         )}
       </div>
     </div>
