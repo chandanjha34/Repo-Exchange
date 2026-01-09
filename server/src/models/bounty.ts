@@ -5,20 +5,21 @@ import mongoose, { Schema, Document } from 'mongoose';
  * Represents users authenticated via Privy
  */
 export interface IBounty extends Document {
-  company : string;
-  logo : string;
-  title : string;
-  reward : string;
-  duration : number;
-  difficulty : string;
-  category : string;
-  tags : string[];
-  overview : string;
-  objectives : string;
-  expectations : string;
-  deliverables : string;
-  evaluation : string[];
-  faq : string[];
+  company: string;
+  logo: string;
+  title: string;
+  reward: string;
+  duration: number; // Duration in weeks (legacy)
+  deadline?: Date; // Campaign deadline
+  difficulty: string;
+  category: string;
+  tags: string[];
+  overview: string;
+  objectives: string;
+  expectations: string;
+  deliverables: string;
+  evaluation: string[];
+  faq: string[];
   privyId: string;
   walletAddress: string;
   email?: string;
@@ -29,22 +30,23 @@ export interface IBounty extends Document {
 const BountySchema = new Schema<IBounty>(
   {
     company: { type: String, required: true },
-    logo: { type: String, required: true },
+    logo: { type: String, default: '' },
     title: { type: String, required: true },
     reward: { type: String, required: true },
-    duration: { type: Number, required: true },
+    duration: { type: Number, required: false, default: 0 },
+    deadline: { type: Date, required: false },
     difficulty: { type: String, required: true },
     category: { type: String, required: true },
-    tags: { type: [String], required: true },
+    tags: { type: [String], default: [] },
     overview: { type: String, required: true },
     objectives: { type: String, required: true },
     expectations: { type: String, required: true },
     deliverables: { type: String, required: true },
-    evaluation: { type: [String], required: true },
-    faq: { type: [String], required: true },
-    privyId: { type: String, required: true},
+    evaluation: { type: [String], default: [] },
+    faq: { type: [String], default: [] },
+    privyId: { type: String, default: 'anonymous' },
     walletAddress: { type: String, required: true },
-    email: { type: String },
+    email: { type: String, default: '' },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt fields

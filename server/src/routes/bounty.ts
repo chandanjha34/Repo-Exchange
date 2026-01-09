@@ -8,18 +8,18 @@ const router = Router();
 
 
 router.get('/', async (req: Request, res: Response) => {
-    try {
-        const bounties = await Bounty.find().exec();
-        return res.status(200).json({
-            success: true,
-            data: bounties,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch bounties',
-        });
-    }
+  try {
+    const bounties = await Bounty.find().exec();
+    return res.status(200).json({
+      success: true,
+      data: bounties,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch bounties',
+    });
+  }
 })
 /**
  * POST /api/transactions
@@ -33,6 +33,7 @@ router.post('/', async (req: Request, res: Response) => {
       title,
       reward,
       duration,
+      deadline,
       difficulty,
       category,
       tags,
@@ -48,31 +49,33 @@ router.post('/', async (req: Request, res: Response) => {
       createdAt,
     } = req.body;
 
-    if (!walletAddress || !company || !title || !reward || !duration || !difficulty || !category || !tags || !overview || !objectives || !expectations || !deliverables || !evaluation || !faq || !privyId) {
+    // Core required fields validation - duration is optional now, deadline preferred
+    if (!walletAddress || !company || !title || !reward || !difficulty || !category || !overview || !objectives || !expectations || !deliverables) {
       return res.status(400).json({
         success: false,
-        error: 'walletAddress, company, title, reward, duration, difficulty, category, tags, overview, objectives, expectations, deliverables, evaluation, faq and privyId are required',
+        error: 'walletAddress, company, title, reward, difficulty, category, overview, objectives, expectations, and deliverables are required',
       });
     }
 
     const bounty = await Bounty.create({
       company,
-      logo,
+      logo: logo || '',
       title,
       reward,
-      duration,
+      duration: duration || 0,
+      deadline: deadline ? new Date(deadline) : undefined,
       difficulty,
       category,
-      tags,
+      tags: tags || [],
       overview,
       objectives,
       expectations,
       deliverables,
-      evaluation,
-      faq,
-      privyId,
+      evaluation: evaluation || [],
+      faq: faq || [],
+      privyId: privyId || 'anonymous',
       walletAddress: walletAddress.toLowerCase(),
-      email,
+      email: email || '',
       createdAt: new Date(),
     });
 
@@ -89,87 +92,87 @@ router.post('/', async (req: Request, res: Response) => {
   }
 });
 
-router.post('/submit', async(req : Request, res: Response) => {
-    // Endpoint to handle bounty submissions
-    console.log('Received submission:', req.body);
-    try {
-        const {
-            TeamName,
-            TeamMembers,
-            BountyId,
-            walletAddress,
-            RepositoryLink,
-            LiveDemoURL,
-            ProductOverview,
-            TechnicalArchitecture,
-            HiringDemand,
-            github,
-            linkedin,
-            twitter,
-            website,
-            other,
-            status,
-        } = req.body;
+router.post('/submit', async (req: Request, res: Response) => {
+  // Endpoint to handle bounty submissions
+  console.log('Received submission:', req.body);
+  try {
+    const {
+      TeamName,
+      TeamMembers,
+      BountyId,
+      walletAddress,
+      RepositoryLink,
+      LiveDemoURL,
+      ProductOverview,
+      TechnicalArchitecture,
+      HiringDemand,
+      github,
+      linkedin,
+      twitter,
+      website,
+      other,
+      status,
+    } = req.body;
 
-        if ( !BountyId || !RepositoryLink || !ProductOverview || !TechnicalArchitecture || !HiringDemand || !walletAddress || !TeamName || !TeamMembers || !github || !linkedin || !twitter || !website || !other || !status ) {
-            return res.status(400).json({
-                success: false,
-                error: 'BountyId, RepositoryLink, ProductOverview, TechnicalArchitecture, HiringDemand, walletAddress, TeamName, TeamMembers, github, linkedin, twitter, website, other and status are required',
-            });
-        }
-        console.log('All required fields are present.');
-        const submission = await Applicants.create({
-            TeamName,
-            TeamMembers,
-            BountyId,
-            walletAddress: walletAddress.toLowerCase(),
-            RepositoryLink,
-            LiveDemoURL,
-            ProductOverview,
-            TechnicalArchitecture,
-            HiringDemand,
-            github,
-            linkedin,
-            twitter,
-            website,
-            other,
-            status,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-        })
-
-        return res.status(201).json({
-            success: true,
-            data: submission,
-        });
-
-    } catch (error) {
-        console.error('Bounty submission error:', error);
-        return res.status(501).json({
-            success: false,
-            error: 'Failed to submit bounty',
-        });
+    if (!BountyId || !RepositoryLink || !ProductOverview || !TechnicalArchitecture || !HiringDemand || !walletAddress || !TeamName || !TeamMembers || !github || !linkedin || !twitter || !website || !other || !status) {
+      return res.status(400).json({
+        success: false,
+        error: 'BountyId, RepositoryLink, ProductOverview, TechnicalArchitecture, HiringDemand, walletAddress, TeamName, TeamMembers, github, linkedin, twitter, website, other and status are required',
+      });
     }
+    console.log('All required fields are present.');
+    const submission = await Applicants.create({
+      TeamName,
+      TeamMembers,
+      BountyId,
+      walletAddress: walletAddress.toLowerCase(),
+      RepositoryLink,
+      LiveDemoURL,
+      ProductOverview,
+      TechnicalArchitecture,
+      HiringDemand,
+      github,
+      linkedin,
+      twitter,
+      website,
+      other,
+      status,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    })
+
+    return res.status(201).json({
+      success: true,
+      data: submission,
+    });
+
+  } catch (error) {
+    console.error('Bounty submission error:', error);
+    return res.status(501).json({
+      success: false,
+      error: 'Failed to submit bounty',
+    });
+  }
 });
 
 router.get('/submissions/:bountyId/:walletAddress', async (req: Request, res: Response) => {
-    try {
-        console.log('Fetching submissions with params:', req.params);
-        const { bountyId, walletAddress } = req.params;
-        const submissions = await Applicants.find({
-          BountyId: bountyId
-        }).exec();
+  try {
+    console.log('Fetching submissions with params:', req.params);
+    const { bountyId, walletAddress } = req.params;
+    const submissions = await Applicants.find({
+      BountyId: bountyId
+    }).exec();
 
-        return res.status(200).json({
-            success: true,
-            data: submissions,
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: 'Failed to fetch submissions',
-        });
-    }
+    return res.status(200).json({
+      success: true,
+      data: submissions,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to fetch submissions',
+    });
+  }
 });
 
 export { router as bountyRouter };
