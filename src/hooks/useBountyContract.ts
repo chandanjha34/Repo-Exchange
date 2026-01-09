@@ -32,7 +32,7 @@ export function useBountyContract() {
      */
     const createCampaign = useCallback(
         async (
-            wallet: any, // Movement wallet from your wallet adapter
+            signAndSubmitTx: (payload: any) => Promise<any>, // Direct function from wallet adapter
             title: string,
             description: string,
             rewardAmount: number, // Amount in MOVE tokens
@@ -45,28 +45,39 @@ export function useBountyContract() {
                 // Convert MOVE to smallest units (8 decimals)
                 const rewardInSmallestUnits = Math.floor(rewardAmount * 100000000);
 
-                const payload: Types.TransactionPayload = {
-                    type: 'entry_function_payload',
-                    function: `${MODULE_ADDRESS}::bounty_campaign::create_campaign`,
-                    arguments: [
-                        title,
-                        description,
-                        rewardInSmallestUnits.toString(),
-                        durationSeconds.toString(),
-                    ],
-                    type_arguments: [],
+                // Use the new wallet adapter v2 format (matching useMovementWallet.sendTransaction)
+                const payload = {
+                    data: {
+                        function: `${MODULE_ADDRESS}::bounty_campaign::create_campaign` as const,
+                        typeArguments: [] as const,
+                        functionArguments: [
+                            title,
+                            description,
+                            rewardInSmallestUnits.toString(),
+                            durationSeconds.toString(),
+                        ],
+                    },
                 };
 
-                // Sign and submit transaction
-                const txnHash = await wallet.signAndSubmitTransaction(payload);
+                console.log('[BountyContract] Submitting transaction with payload:', payload);
+
+                // Sign and submit transaction - call the function directly
+                const result = await signAndSubmitTx(payload);
+
+                // Handle different response formats (some wallets return object, some return string)
+                const txnHash = typeof result === 'string' ? result : result?.hash || result?.txHash || result;
+
+                console.log('[BountyContract] Transaction submitted:', txnHash);
 
                 // Wait for transaction confirmation
-                await client.waitForTransaction(txnHash);
+                if (txnHash) {
+                    await client.waitForTransaction(txnHash);
+                }
 
-                console.log('Campaign created successfully:', txnHash);
+                console.log('[BountyContract] Campaign created successfully:', txnHash);
                 return txnHash;
             } catch (err: any) {
-                console.error('Error creating campaign:', err);
+                console.error('[BountyContract] Error creating campaign:', err);
                 setError(err.message || 'Failed to create campaign');
                 throw err;
             } finally {
