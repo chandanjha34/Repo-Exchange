@@ -22,13 +22,33 @@ export default defineConfig(({ mode }) => ({
       // Externalize optional Solana dependencies that Privy doesn't need for Ethereum-only usage
       external: [],
     },
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
+
   },
   optimizeDeps: {
     include: [
       "@aptos-labs/ts-sdk",
       "@aptos-labs/wallet-adapter-core",
       "@aptos-labs/wallet-adapter-react",
-      "@aptos-labs/wallet-adapter-react-ui"
+      "@aptos-labs/wallet-adapter-react-ui",
+      "@aptos-labs/wallet-standard",
+      "@wallet-standard/core",
+      "@wallet-standard/features",
+      // Aptos core
+      "@aptos-labs/ts-sdk",
+      "@aptos-labs/wallet-adapter-core",
+      "@aptos-labs/wallet-adapter-react",
+      "@aptos-labs/wallet-adapter-react-ui",
+
+      // Wallet standard
+      "@wallet-standard/core",
+      "@wallet-standard/features",
+
+      // Aptos Connect + Telegram
+      "@aptos-connect/web-transport",
+      "@telegram-apps/bridge",
     ],
   },
 }));
